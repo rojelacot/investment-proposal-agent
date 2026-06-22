@@ -2,6 +2,7 @@ import { useState } from "react";
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import * as XLSX from "xlsx";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -18,6 +19,20 @@ export default function FileUploadBox({ onTextExtracted }) {
     const arrayBuffer = await file.arrayBuffer();
     const result = await mammoth.extractRawText({ arrayBuffer });
     return result.value || "";
+  }
+
+  async function readXlsxFile(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: "array" });
+    const sheets = [];
+
+    for (const sheetName of workbook.SheetNames) {
+      const sheet = workbook.Sheets[sheetName];
+      const csv = XLSX.utils.sheet_to_csv(sheet);
+      sheets.push(`--- Sheet: ${sheetName} ---\n${csv}`);
+    }
+
+    return sheets.join("\n\n");
   }
 
   async function readPdfFile(file) {
@@ -54,6 +69,10 @@ export default function FileUploadBox({ onTextExtracted }) {
 
     if (name.endsWith(".pdf")) {
       return await readPdfFile(file);
+    }
+
+    if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
+      return await readXlsxFile(file);
     }
 
     throw new Error(`Unsupported file type: ${file.name}`);
@@ -100,7 +119,7 @@ export default function FileUploadBox({ onTextExtracted }) {
     <div className="file-upload-box">
       <h3>Upload Documents</h3>
       <p>
-        Select PDFs, Word docs, text files, CSVs, or notes from your laptop.
+        Select PDFs, Word docs, Excel spreadsheets, text files, CSVs, or notes from your laptop.
         The app will extract the text and add it to the client notes.
       </p>
 
@@ -108,12 +127,12 @@ export default function FileUploadBox({ onTextExtracted }) {
         <input
           type="file"
           multiple
-          accept=".pdf,.docx,.txt,.md,.csv,.json,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept=".pdf,.docx,.txt,.md,.csv,.json,.xlsx,.xls,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
           onChange={handleFileUpload}
         />
 
         <span>{isReading ? "Reading documents..." : "Choose Documents from Laptop"}</span>
-        <small>PDF, DOCX, TXT, MD, CSV, JSON</small>
+        <small>PDF, DOCX, XLSX, XLS, TXT, MD, CSV, JSON</small>
       </label>
 
       {uploadedFiles.length > 0 && (
