@@ -1,0 +1,73 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "width": 760,
+  "height": 260,
+  "background": "#F7F5F0",
+  "title": {
+    "text": "Estate / Net Worth Breakdown",
+    "anchor": "start",
+    "fontSize": 22,
+    "fontWeight": "bold",
+    "color": "#1A2744"
+  },
+  "data": {
+    "values": [
+      {
+        "category": "Managed Assets",
+        "value": 72
+      },
+      {
+        "category": "Real Estate",
+        "value": 28
+      },
+      {
+        "category": "Other Assets",
+        "value": 18
+      }
+    ]
+  },
+  "mark": {
+    "type": "arc",
+    "innerRadius": 70,
+    "outerRadius": 120,
+    "stroke": "#F7F5F0",
+    "strokeWidth": 3
+  },
+  "encoding": {
+    "theta": {
+      "field": "value",
+      "type": "quantitative"
+    },
+    "color": {
+      "field": "category",
+      "type": "nominal",
+      "scale": {
+        "range": [
+          "#3A6BBF",
+          "#B8892A",
+          "#1E7A6E"
+        ]
+      },
+      "legend": {
+        "orient": "right",
+        "title": null,
+        "labelFontSize": 15,
+        "labelColor": "#1A2030"
+      }
+    },
+    "tooltip": [
+      {
+        "field": "category",
+        "type": "nominal"
+      },
+      {
+        "field": "value",
+        "type": "quantitative",
+        "title": "$M"
+      }
+    ]
+  },
+  "view": {
+    "stroke": null
+  }
+}
