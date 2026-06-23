@@ -66,6 +66,9 @@ export default function App() {
 
   const [selectedRiskProfile, setSelectedRiskProfile] = useState("");
   const [useRecommendedApproach, setUseRecommendedApproach] = useState(false);
+  const [firmName, setFirmName] = useState("");
+  const [advisorName, setAdvisorName] = useState("");
+
   const [collarOptions, setCollarOptions] = useState(null);
   const [collarOptionsLoading, setCollarOptionsLoading] = useState(false);
   const [collarOptionsError, setCollarOptionsError] = useState("");
@@ -2083,6 +2086,8 @@ function getSelectedPortfolioStrategyLabels() {
         riskNumber: riskNumberFromNotes,
         fundSwaps: data.fundSwaps || {},
         backtest: proposal.backtest || null,
+        firmName: firmName.trim() || "Meridian Wealth Partners",
+        advisorName: advisorName.trim(),
       });
 
       downloadBlob(blob, `${name.replaceAll(" ", "_")}_Investment_Proposal.pptx`);
@@ -2108,6 +2113,30 @@ function getSelectedPortfolioStrategyLabels() {
       </header>
 
       <main className="container">
+        {!reviewData && !proposal && clarifyingQuestions.length === 0 && (
+        <section className="card firm-settings-card">
+          <h2>Firm Settings</h2>
+          <div className="firm-settings-grid">
+            <div className="firm-settings-field">
+              <label>Firm Name</label>
+              <input
+                placeholder="e.g. Meridian Wealth Partners"
+                value={firmName}
+                onChange={(e) => setFirmName(e.target.value)}
+              />
+            </div>
+            <div className="firm-settings-field">
+              <label>Advisor Name</label>
+              <input
+                placeholder="e.g. Jane Smith"
+                value={advisorName}
+                onChange={(e) => setAdvisorName(e.target.value)}
+              />
+            </div>
+          </div>
+        </section>
+        )}
+
         {!reviewData && !proposal && clarifyingQuestions.length === 0 && (
         <section className="card">
           <h2>Paste Client Notes</h2>
