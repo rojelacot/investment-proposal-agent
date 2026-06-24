@@ -170,19 +170,20 @@ html {
 /* ── Main container & two-column layout ───────────────────────────────── */
 
 .container {
-  width: min(1280px, calc(100vw - 64px));
+  width: min(720px, calc(100vw - 64px));
   margin: 0 auto;
   padding: 56px 0 88px;
-  display: grid;
-  grid-template-columns: minmax(420px, 1.25fr) minmax(280px, 1fr);
-  gap: 40px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: stretch;
 }
 
 /* Once results exist, the form is unmounted by React — let the review
    content become a single centered column instead of a half-empty grid. */
 .page.review-mode .container {
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: min(900px, calc(100vw - 48px));
   padding: 48px 0 96px;
 }
@@ -192,6 +193,10 @@ html {
 }
 
 /* ── Firm Settings card ────────────────────────────────────────────────── */
+
+.firm-settings-card {
+  margin-bottom: -8px;
+}
 
 .firm-settings-card h2 {
   margin-bottom: 20px;

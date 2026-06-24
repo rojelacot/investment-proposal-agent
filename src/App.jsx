@@ -2176,20 +2176,6 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
 
         <div className="output-panel">
           <div className="empty-state">
-            {!status && !proposal && !reviewData && clarifyingQuestions.length === 0 && (
-              <>
-                <h3>Agent Review</h3>
-                <p>
-                  Paste client notes or upload documents, then click Run Agent. The agent will extract client data,
-                  recommend a portfolio approach, and let you review strategy selections before generating files.
-                </p>
-                <p className="agent-review-files">
-                  <strong>Word Document</strong> includes client-specific numbers, recommendations, strategy allocation,
-                  assumptions, and next steps. <strong>PowerPoint Deck</strong> includes styled slides with visuals,
-                  charts, flow diagrams, and client-specific numbers.
-                </p>
-              </>
-            )}
           </div>
 
           {status && <p className="status">{status}</p>}
