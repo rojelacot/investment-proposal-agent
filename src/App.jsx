@@ -1904,7 +1904,7 @@ function getSelectedPortfolioStrategyLabels() {
                 text: `${name} Investment Proposal Memo`,
                 heading: HeadingLevel.TITLE,
               }),
-              new Paragraph("Prepared by Investment Proposal Agent"),
+              new Paragraph("Prepared by Investment Proposal Project"),
               new Paragraph("Confidential — For discussion purposes only"),
               smallSpace(),
 
@@ -2108,7 +2108,7 @@ function getSelectedPortfolioStrategyLabels() {
             ← Back
           </button>
         )}
-        <h1>Investment Proposal Agent</h1>
+        <h1>Investment Proposal Project</h1>
         <div className="badge">AI-POWERED</div>
       </header>
 

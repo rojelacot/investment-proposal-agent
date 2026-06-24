@@ -90,7 +90,7 @@ export async function generatePowerPoint({
 
       const pptx = new pptxgen();
       pptx.layout = "LAYOUT_WIDE";
-      pptx.author = "Investment Proposal Agent";
+      pptx.author = "Investment Proposal Project";
       pptx.subject = "Concentrated Stock Investment Proposal";
       pptx.title = `${name} Styled Investment Proposal`;
 
