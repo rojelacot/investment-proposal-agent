@@ -412,7 +412,7 @@ function normalizeHoldings(raw) {
 
 /** Splits a single CSV line respecting RFC 4180 double-quoting.
  *  "NVDA","$46,500,000" → ["NVDA", "$46,500,000"] instead of ["NVDA", '"$46', '500', '000"'] */
-function parseCSVRow(line) {
+export function parseCSVRow(line) {
   const cells = [];
   let cur = "";
   let inQuote = false;
