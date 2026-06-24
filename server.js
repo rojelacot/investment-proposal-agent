@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
 import dotenv from "dotenv";
+import { readFileSync } from "fs";
 
 dotenv.config();
 
@@ -177,6 +178,58 @@ app.get("/api/history/:ticker", async (req, res) => {
   } catch (err) {
     console.error(`[history] ${req.params.ticker} -> ${err.message}`);
     res.status(500).json({ error: err.message || "Unknown history error.", ticker: req.params.ticker });
+  }
+});
+
+// ── /api/strategies ──────────────────────────────────────────────────────────
+// Reads "Copy of 2026 Strategies Q1.xlsx" and returns top-level allocations
+// (Equity, Fixed Income, Alternatives, Cash) for each strategy × risk level.
+
+app.get("/api/strategies", (req, res) => {
+  try {
+    const XLSX = require("xlsx");
+    const filePath = path.join(__dirname, "Copy of 2026 Strategies Q1.xlsx");
+    const wb = XLSX.readFile(filePath);
+
+    const SHEET_MAP = {
+      "Strategy 1- Core Private":   "Core Private",
+      "Strategy 2-Select Lquidity": "Select Liquidity",
+      "Strategy 3-Traditional":     "Traditional",
+      "Strategy 4-Focused B":       "Focused B",
+    };
+    const TOP_ASSETS = ["Equity", "Fixed Income", "Alternatives", "Cash"];
+
+    const strategies = {};
+
+    for (const [sheetName, cleanName] of Object.entries(SHEET_MAP)) {
+      const ws = wb.Sheets[sheetName];
+      if (!ws) continue;
+
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      // Row index 2 has risk level names in columns 1–8
+      const riskLevels = rows[2]?.slice(1, 9) || [];
+      const allocations = {};
+
+      riskLevels.forEach((risk, colOffset) => {
+        if (!risk) return;
+        const alloc = {};
+        for (let r = 3; r < rows.length; r++) {
+          const assetClass = rows[r][0];
+          const value = rows[r][colOffset + 1];
+          if (TOP_ASSETS.includes(assetClass) && value != null && value !== "") {
+            alloc[assetClass] = Math.round(parseFloat(value) * 100);
+          }
+        }
+        allocations[String(risk).trim()] = alloc;
+      });
+
+      strategies[cleanName] = allocations;
+    }
+
+    res.json(strategies);
+  } catch (err) {
+    console.error("[strategies]", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

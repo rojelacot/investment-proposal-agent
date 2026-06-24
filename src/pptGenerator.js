@@ -58,6 +58,7 @@ export async function generatePowerPoint({
   backtest = null,
   firmName = "Meridian Wealth Partners",
   advisorName = "",
+  liveStrategyAllocations = null,
 }) {
 
   // Convenience aliases that match the in-component variable names
@@ -2612,7 +2613,34 @@ export async function generatePowerPoint({
             swappedFrom: f.name,
           };
         });
-        const groupTotals    = getGroupTotals(selectedPortfolioKey, selectedRiskKey);
+        // Use live Excel allocations for top-level group totals if available,
+        // otherwise fall back to the computed values from portfolioData.js.
+        const STRATEGY_KEY_MAP = {
+          corePrivate:           "Core Private",
+          selectLiquidity:       "Select Liquidity",
+          traditional:           "Traditional",
+          focusedB:              "Focused B",
+          selectLiquidityUsBias: "Select Liquidity",
+          traditionalUsBias:     "Traditional",
+        };
+        const RISK_KEY_MAP = {
+          conservative:          "Conservative",
+          moderatelyConservative:"Moderately Conservative",
+          conservativePlus:      "Conservative Plus",
+          balanced:              "Balanced",
+          balancedPlus:          "Balanced Plus",
+          growth:                "Growth",
+          growthPlus:            "Growth Plus",
+          aggressive:            "Aggressive",
+        };
+        const liveAlloc = liveStrategyAllocations
+          ?.[STRATEGY_KEY_MAP[selectedPortfolioKey]]
+          ?.[RISK_KEY_MAP[selectedRiskKey]];
+
+        const groupTotals = liveAlloc
+          ? { Equity: liveAlloc["Equity"] || 0, "Fixed Income": liveAlloc["Fixed Income"] || 0, Alternatives: liveAlloc["Alternatives"] || 0, Cash: liveAlloc["Cash"] || 0 }
+          : getGroupTotals(selectedPortfolioKey, selectedRiskKey);
+
         const subGroupTotals = getSubGroupTotals(selectedPortfolioKey, selectedRiskKey);
         const hasAnySwap     = realFunds.some(f => f.swappedFrom);
         const equityPct      = groupTotals["Equity"]       || 0;

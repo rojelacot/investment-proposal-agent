@@ -68,6 +68,14 @@ export default function App() {
   const [useRecommendedApproach, setUseRecommendedApproach] = useState(false);
   const [firmName, setFirmName] = useState("");
   const [advisorName, setAdvisorName] = useState("");
+  const [liveStrategyAllocations, setLiveStrategyAllocations] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/strategies")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setLiveStrategyAllocations(data); })
+      .catch(() => {}); // silently fall back to portfolioData.js if unavailable
+  }, []);
 
   const [collarOptions, setCollarOptions] = useState(null);
   const [collarOptionsLoading, setCollarOptionsLoading] = useState(false);
@@ -2088,6 +2096,7 @@ function getSelectedPortfolioStrategyLabels() {
         backtest: proposal.backtest || null,
         firmName: firmName.trim() || "Meridian Wealth Partners",
         advisorName: advisorName.trim(),
+        liveStrategyAllocations,
       });
 
       downloadBlob(blob, `${name.replaceAll(" ", "_")}_Investment_Proposal.pptx`);
