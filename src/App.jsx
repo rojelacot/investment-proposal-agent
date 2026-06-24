@@ -1,4 +1,4 @@
-import React, { useState, useEffect} from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Document,
   Packer,
@@ -14,7 +14,7 @@ import MissingInfoPanel from "./MissingInfoPanel";
 import { recomputeReviewedData, getProposalQuality } from "./proposalUpgrades";
 import FileUploadBox from "./FileUploadBox";
 import { safeExtractClientData, parseHoldingsFromText } from "./safeClientExtraction";
-import { fmtM, fmtK, fmtDollar, pct, cleanNum } from "./formatters";
+import { fmtM, fmtK, pct } from "./formatters";
 import { generatePowerPoint } from "./pptGenerator";
 import ProposalPreviewModal from "./ProposalPreviewModal";
 import { getFunds } from "./portfolioData";
@@ -117,11 +117,60 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
     crt: true,
     harvesting: true,
     collar: true,
+    diversification: true,
     muniBonds: false,
     donorAdvisedFund: false,
     exchangeFund: false,
     estatePlanning: false,
   });
+
+  // ── Session persistence ───────────────────────────────────────────────────
+  // Auto-save the working session to localStorage so a page refresh (or an
+  // accidental tab close) doesn't lose an in-progress proposal. We restore once
+  // on mount, then save whenever the tracked inputs/selections change.
+  const SESSION_KEY = "ipa.session.v1";
+  const hydratedRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s.firmName != null) setFirmName(s.firmName);
+        if (s.advisorName != null) setAdvisorName(s.advisorName);
+        if (s.clientName != null) setClientName(s.clientName);
+        if (s.clientType != null) setClientType(s.clientType);
+        if (s.notes != null) setNotes(s.notes);
+        if (s.reviewData) setReviewData(s.reviewData);
+        if (s.qualityReport) setQualityReport(s.qualityReport);
+        if (s.selectedStrategies) setSelectedStrategies(s.selectedStrategies);
+        if (s.selectedPortfolioStrategies) setSelectedPortfolioStrategies(s.selectedPortfolioStrategies);
+        if (s.selectedProposalModules) setSelectedProposalModules(s.selectedProposalModules);
+        if (s.selectedRiskProfile != null) setSelectedRiskProfile(s.selectedRiskProfile);
+        if (typeof s.useRecommendedApproach === "boolean") setUseRecommendedApproach(s.useRecommendedApproach);
+        if (Array.isArray(s.scannedHoldings)) setScannedHoldings(s.scannedHoldings);
+      }
+    } catch { /* corrupt/unavailable storage — start fresh */ }
+    hydratedRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        firmName, advisorName, clientName, clientType, notes,
+        reviewData, qualityReport, selectedStrategies,
+        selectedPortfolioStrategies, selectedProposalModules,
+        selectedRiskProfile, useRecommendedApproach, scannedHoldings,
+        savedAt: new Date().toISOString(),
+      }));
+    } catch { /* quota or serialization issue — non-fatal */ }
+  }, [
+    firmName, advisorName, clientName, clientType, notes,
+    reviewData, qualityReport, selectedStrategies,
+    selectedPortfolioStrategies, selectedProposalModules,
+    selectedRiskProfile, useRecommendedApproach, scannedHoldings,
+  ]);
 
 
   async function fetchPreviousClosePrice(ticker) {
@@ -174,7 +223,16 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
       setCollarOptions(data);
     } catch (err) {
       console.warn("Collar options fetch failed:", err);
-      setCollarOptionsError(err.message || "Could not load live options data.");
+      // A TypeError from fetch() means the request never reached the backend at
+      // all (Express server.js on :5174 not running, or the app was opened
+      // without the Vite /api proxy) — surface that as a clear, advisor-friendly
+      // message instead of the raw browser string "Failed to fetch". A plain
+      // Error carries a real reason from the backend, so keep its message.
+      const message =
+        err instanceof TypeError
+          ? "Live options service not reachable"
+          : err.message || "Could not load live options data.";
+      setCollarOptionsError(message);
     } finally {
       setCollarOptionsLoading(false);
     }
@@ -480,11 +538,6 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
       } else {
         investableAssets = stockPosition / 0.65;
       }
-    }
-
-    // If concentration is missing or clearly impossible, compute it from stock / investable assets
-    if ((!concentration || concentration > 100 || concentration <= 0) && investableAssets && stockPosition) {
-      concentration = (stockPosition / investableAssets) * 100;
     }
 
     // Last fallback
@@ -1169,11 +1222,24 @@ function getSelectedPortfolioStrategyLabels() {
       crt: true,
       harvesting: true,
       collar: true,
+      diversification: true,
       muniBonds: false,
       donorAdvisedFund: false,
       exchangeFund: false,
       estatePlanning: false,
     });
+    // Clear the portfolio-model / risk selections too, so a new client starts
+    // from a truly blank slate rather than inheriting the prior client's picks.
+    setSelectedPortfolioStrategies({
+      corePrivate: false,
+      selectLiquidity: false,
+      traditional: false,
+      focusedB: false,
+      selectLiquidityUsBias: false,
+      traditionalUsBias: false,
+    });
+    setSelectedRiskProfile("");
+    setUseRecommendedApproach(false);
   }
 
   function loadSampleClient(type) {
@@ -2172,6 +2238,23 @@ function getSelectedPortfolioStrategyLabels() {
           <p className="intro">
             Paste client notes, financials, concentrated stock details, tax concerns, goals, and legacy objectives.
           </p>
+
+          <div className="client-toolbar">
+            <select
+              className="dropdown-select"
+              value=""
+              onChange={(e) => { if (e.target.value) loadSampleClient(e.target.value); }}
+            >
+              <option value="">Load sample client…</option>
+              <option value="executive">Mercer Household — Concentrated stock executive</option>
+              <option value="businessOwner">Rossi Household — Business owner after liquidity event</option>
+              <option value="retiree">Henderson Household — Retiree income client</option>
+            </select>
+            <button type="button" className="secondary-button" onClick={startNewClient}>
+              New Client
+            </button>
+          </div>
+
           <FileUploadBox onTextExtracted={addExtractedDocumentText} />
 
 
@@ -2434,6 +2517,12 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
                       label: "Options Collar",
                       slides: "1 slide",
                       desc: "Payoff chart with put floor, call cap, and protected range.",
+                    },
+                    {
+                      key: "diversification",
+                      label: "Phased Diversification Schedule",
+                      slides: "1 slide",
+                      desc: "Year-by-year exit plan with capital-gains budget and declining concentration.",
                     },
                   ].map((option) => (
                     <label key={option.key} className={`slide-card ${selectedStrategies[option.key] ? "slide-card--selected" : ""}`}>

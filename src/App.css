@@ -943,6 +943,22 @@ button:disabled {
   transition: border-color var(--fast) ease, box-shadow var(--fast) ease;
 }
 
+.client-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.client-toolbar .dropdown-select {
+  flex: 1;
+  width: auto;
+}
+
+.client-toolbar .secondary-button {
+  white-space: nowrap;
+}
+
 .dropdown-select:hover {
   border-color: var(--gold-light);
 }
