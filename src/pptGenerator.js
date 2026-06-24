@@ -1,9 +1,13 @@
 import pptxgen from "pptxgenjs";
 import { toPng } from "html-to-image";
-import { addEstateFlowVisual, addNextStepsVisual } from "./pptVisuals";
+import { addNextStepsVisual } from "./pptVisuals";
 import { buildEstateSlideHtml } from "./htmlVisualTemplates";
-import { cleanNum, fmtM, fmtK, fmtDollar, pct } from "./formatters";
+import { fmtM, fmtK, pct } from "./formatters";
 import { getFunds, getGroupTotals, getSubGroupTotals } from "./portfolioData";
+import { buildExitSchedule } from "./concentratedExit";
+import { compareFeeDrag } from "./feeProjection";
+import { runMonteCarlo } from "./monteCarlo";
+import { stressTest } from "./stressTest";
 
 async function loadSvgDataUri(publicPath) {
   const response = await fetch(publicPath);
@@ -2189,6 +2193,90 @@ export async function generatePowerPoint({
       }
 
 
+      // ── PHASED DIVERSIFICATION SCHEDULE ─────────────────────────────────────
+      // Year-by-year exit of the concentrated position within an annual capital-
+      // gains budget, reinvesting after-tax proceeds into the diversified model.
+      if (includeConcentratedStockSlides && selectedStrategies.diversification) {
+        const ltcgRate = (data.federalTaxRate ?? 23.8) + (data.stateTaxRate ?? 0);
+        const embeddedGain = Math.max(
+          Number(data.embeddedGain) ||
+            (Number(data.stockPosition) || 0) - (Number(data.costBasis) || 0),
+          0
+        );
+        // Budget the plan to realize ~a quarter of the embedded gain per year.
+        // When there's no gain to manage, fall back to a fixed 20%/yr tranche.
+        const gainsBudget = embeddedGain > 0 ? +(embeddedGain * 0.25).toFixed(3) : null;
+
+        const { rows: schedule, summary } = buildExitSchedule({
+          stockPosition: data.stockPosition,
+          costBasisPct: data.costBasisPct,
+          investableAssets: data.investableAssets,
+          ltcgRate,
+          growthRate: 7.5,
+          annualReductionPct: gainsBudget ? 100 : 20,
+          annualGainsBudget: gainsBudget,
+          targetConcentrationPct: 10,
+        });
+
+        if (schedule.length > 0) {
+          slide = pptx.addSlide();
+          title(
+            slide,
+            "05B · STRATEGY DETAIL",
+            `Phased Diversification of ${data.ticker || "the Concentrated Position"}`,
+            ""
+          );
+
+          slide.addText(
+            "Rather than a single taxable sale, the position is unwound over time within an annual capital-gains budget. After-tax proceeds are reinvested into the diversified portfolio until single-stock concentration falls to the target.",
+            { x: 0.85, y: 1.36, w: 11.4, h: 0.4, fontSize: 10.2, color: C.text, margin: 0 }
+          );
+
+          statBox(slide, 0.85, 1.86, 2.05, "Starting Concentration", pct(summary.startingConcentrationPct), C.coralPale, C.coral);
+          statBox(slide, 3.1,  1.86, 2.05, "Ending Concentration", pct(summary.endingConcentrationPct), C.tealPale, C.teal);
+          statBox(slide, 5.35, 1.86, 2.05, "Plan Length", `${summary.yearsModeled} yrs`, C.white, C.navy);
+          statBox(slide, 7.6,  1.86, 2.05, "Annual Gains Budget", gainsBudget ? fmtK(gainsBudget) : "20%/yr", C.goldPale, C.gold);
+          statBox(slide, 9.85, 1.86, 2.35, "Total Cap-Gains Tax", fmtK(summary.totalTax), C.bluePale, C.blue);
+
+          // Native, editable schedule table. Cap displayed rows so it fits.
+          const shown = schedule.slice(0, 9);
+          const hdr = ["Year", "Sell", "Realized Gain", "Cap-Gains Tax", "Reinvested", "Remaining Position", "Concentration"];
+          const headerRow = hdr.map((t, i) => ({
+            text: t,
+            options: { bold: true, color: C.white, fill: { color: C.navy }, align: i === 0 ? "center" : "right", fontSize: 9.5, valign: "middle" },
+          }));
+          const bodyRows = shown.map((r, idx) => {
+            const base = { fontSize: 9.5, color: C.text, valign: "middle", fill: { color: idx % 2 ? C.lightBar : C.white } };
+            return [
+              { text: String(r.year), options: { ...base, align: "center", bold: true, color: C.navy } },
+              { text: fmtK(r.sold), options: { ...base, align: "right" } },
+              { text: fmtK(r.realizedGain), options: { ...base, align: "right" } },
+              { text: fmtK(r.tax), options: { ...base, align: "right", color: C.coral } },
+              { text: fmtK(r.netProceeds), options: { ...base, align: "right" } },
+              { text: fmtK(r.remainingPosition), options: { ...base, align: "right" } },
+              { text: pct(r.concentrationPct), options: { ...base, align: "right", bold: true, color: C.teal } },
+            ];
+          });
+
+          slide.addTable([headerRow, ...bodyRows], {
+            x: 0.85, y: 2.62, w: 11.6,
+            colW: [1.0, 1.75, 1.95, 1.85, 1.85, 2.0, 1.2],
+            rowH: 0.34,
+            border: { type: "solid", color: C.border, pt: 0.5 },
+            margin: [2, 6, 2, 6],
+          });
+
+          const budgetNote = gainsBudget
+            ? `realizing ~${fmtK(gainsBudget)} of gains per year`
+            : "selling ~20% of the original position per year";
+          slide.addText(
+            `Assumptions: ${budgetNote}; ${pct(ltcgRate)} long-term capital-gains rate (incl. NIIT/state); 7.5% assumed annual growth; target concentration 10%. Selling the entire position today would instead realize ${fmtK(summary.immediateSaleTax)} of tax in a single year. Illustrative only — not tax advice; consult a tax professional.`,
+            { x: 0.85, y: 6.55, w: 11.6, h: 0.6, fontSize: 8, italic: true, color: C.muted, margin: 0 }
+          );
+
+          footer(slide);
+        }
+      }
 
 
       // Slide 8 — CRT Before / After, Cohesive Version
@@ -2483,10 +2571,7 @@ export async function generatePowerPoint({
           // No risk profile/allocation selected, so skip portfolio allocation slides.
         } else {
 
-        const profileLabel =
-          true
-            ? riskProfileLabel
-            : "Balanced — 50/50";
+        const profileLabel = riskProfileLabel;
 
         function pctLabel(v) {
           return `${Number(v || 0).toFixed(1)}%`;
@@ -2978,7 +3063,7 @@ export async function generatePowerPoint({
 
             const pctF = (v, d = 1) => (v == null ? "—" : `${(v * 100).toFixed(d)}%`);
             const feeF = (v) => (v == null ? "—" : `${v.toFixed(2)}%`);
-            const growth10k = (cumRet) => (cumRet == null ? "—" : `$${Math.round(10000 * (1 + cumRet)).toLocaleString("en-US")}`);
+            const ratioF = (v) => (v == null ? "—" : v.toFixed(2));
 
             const panelW = c ? 5.6 : 11.6;
             const panelX1 = 0.85;
@@ -2991,7 +3076,7 @@ export async function generatePowerPoint({
             statBox(slide, panelX1 + 0.22, panelY + 0.62, (panelW - 0.66) / 2, "Annualized Return (CAGR)", pctF(ts.annualizedReturn), C.tealPale, C.teal);
             statBox(slide, panelX1 + 0.22 + (panelW - 0.66) / 2 + 0.22, panelY + 0.62, (panelW - 0.66) / 2, "Annualized Volatility", pctF(ts.annualizedVolatility), C.white, C.navy);
             statBox(slide, panelX1 + 0.22, panelY + 1.46, (panelW - 0.66) / 2, "Max Drawdown", pctF(ts.maxDrawdown), C.white, C.coral);
-            statBox(slide, panelX1 + 0.22 + (panelW - 0.66) / 2 + 0.22, panelY + 1.46, (panelW - 0.66) / 2, "Growth of $10,000", growth10k(ts.cumulativeReturn), C.tealPale, C.teal);
+            statBox(slide, panelX1 + 0.22 + (panelW - 0.66) / 2 + 0.22, panelY + 1.46, (panelW - 0.66) / 2, "Sharpe Ratio", ratioF(ts.sharpeRatio), C.tealPale, C.teal);
             slide.addText(
               `Weighted avg. fee: ${feeF(t.weightedFeePct)}` +
                 (t.coveragePct < 100 ? `  ·  reflects ${t.coveragePct.toFixed(0)}% of model by allocation` : ""),
@@ -3008,7 +3093,7 @@ export async function generatePowerPoint({
               statBox(slide, panelX2 + 0.22, panelY + 0.62, (panelW - 0.66) / 2, "Annualized Return (CAGR)", pctF(cs?.annualizedReturn), C.white, C.navy);
               statBox(slide, panelX2 + 0.22 + (panelW - 0.66) / 2 + 0.22, panelY + 0.62, (panelW - 0.66) / 2, "Annualized Volatility", pctF(cs?.annualizedVolatility), C.white, C.navy);
               statBox(slide, panelX2 + 0.22, panelY + 1.46, (panelW - 0.66) / 2, "Max Drawdown", pctF(cs?.maxDrawdown), C.white, C.coral);
-              statBox(slide, panelX2 + 0.22 + (panelW - 0.66) / 2 + 0.22, panelY + 1.46, (panelW - 0.66) / 2, "Growth of $10,000", growth10k(cs?.cumulativeReturn), C.white, C.navy);
+              statBox(slide, panelX2 + 0.22 + (panelW - 0.66) / 2 + 0.22, panelY + 1.46, (panelW - 0.66) / 2, "Sharpe Ratio", ratioF(cs?.sharpeRatio), C.white, C.navy);
               slide.addText(
                 currentNote,
                 { x: panelX2 + 0.22, y: panelY + 2.30, w: panelW - 0.44, h: 0.5, fontSize: 7.5, color: C.muted, margin: 0, fit: "shrink" }
@@ -3040,8 +3125,8 @@ export async function generatePowerPoint({
             footer(slide);
 
             // ── SLIDE 4: PORTFOLIO ANALYTICS ─────────────────────────────────
-            // Growth of $10k line chart (left) + Risk/Return efficient frontier
-            // (right) — mirrors every visual shown in the modal's backtest section.
+            // Risk/Return efficient frontier with risk-adjusted (Sharpe/Sortino)
+            // stats. The growth-of-$10,000 line chart was intentionally removed.
             {
               slide = pptx.addSlide();
               title(
@@ -3052,77 +3137,6 @@ export async function generatePowerPoint({
                   ? `Backtested ${ts.startDate} – ${ts.endDate} · past performance does not guarantee future results`
                   : "Portfolio risk / return analysis"
               );
-
-              // ── Growth of $10k SVG ───────────────────────────────────────
-              function makeGrowth10kSvg(tSeries, cSeries) {
-                if (!tSeries || tSeries.length < 2) return null;
-                // Build unified date axis
-                const dateSet = new Set(tSeries.map(p => p.date));
-                if (cSeries) cSeries.forEach(p => dateSet.add(p.date));
-                const dates = [...dateSet].sort();
-                const n = dates.length;
-                const tMap = Object.fromEntries(tSeries.map(p => [p.date, p.value]));
-                const cMap = cSeries ? Object.fromEntries(cSeries.map(p => [p.date, p.value])) : {};
-                const allVals = [...Object.values(tMap), ...Object.values(cMap)];
-                const minV = Math.min(...allVals) * 0.96;
-                const maxV = Math.max(...allVals) * 1.04;
-
-                const W = 620, H = 340;
-                const ml = 72, mr = 18, mt = 22, mb = 46;
-                const pw = W - ml - mr, ph = H - mt - mb;
-                const toX = i => ml + (i / Math.max(n - 1, 1)) * pw;
-                const toY = v => mt + ph - ((v - minV) / Math.max(maxV - minV, 1)) * ph;
-
-                // Paths
-                const tPath = dates.reduce((acc, d, i) => {
-                  if (tMap[d] == null) return acc;
-                  return acc + (acc === "" ? "M" : " L") + `${toX(i).toFixed(1)},${toY(tMap[d]).toFixed(1)}`;
-                }, "");
-                const cPath = cSeries ? dates.reduce((acc, d, i) => {
-                  if (cMap[d] == null) return acc;
-                  return acc + (acc === "" ? "M" : " L") + `${toX(i).toFixed(1)},${toY(cMap[d]).toFixed(1)}`;
-                }, "") : "";
-
-                // Gridlines — 5 nice Y values
-                const step = (maxV - minV) / 4;
-                const yTicks = Array.from({ length: 5 }, (_, i) => Math.round((minV + step * i) / 1000) * 1000);
-                const gridLines = yTicks.map(v => {
-                  const y = toY(v).toFixed(1);
-                  return `<line x1="${ml}" y1="${y}" x2="${W - mr}" y2="${y}" stroke="#E8ECF0" stroke-width="1"/>
-                    <text x="${ml - 5}" y="${(parseFloat(y) + 4).toFixed(0)}" text-anchor="end" font-size="9" fill="#6E7E9A">$${(v / 1000).toFixed(0)}k</text>`;
-                }).join("");
-
-                // X labels: first, middle, last
-                const xIdx = [0, Math.floor(n / 2), n - 1];
-                const xLabels = xIdx.map(i => `<text x="${toX(i).toFixed(1)}" y="${mt + ph + 16}" text-anchor="middle" font-size="9" fill="#6E7E9A">${dates[i]?.substring(0, 7) || ""}</text>`).join("");
-
-                // Endpoint labels
-                const tLast = tSeries[tSeries.length - 1];
-                const cLast = cSeries ? cSeries[cSeries.length - 1] : null;
-                const tEndX = toX(dates.indexOf(tLast.date));
-                const tEndY = toY(tLast.value);
-                const cEndX = cLast ? toX(dates.indexOf(cLast.date)) : 0;
-                const cEndY = cLast ? toY(cLast.value) : 0;
-
-                return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-                  <rect width="${W}" height="${H}" fill="#FFFFFF"/>
-                  ${gridLines}
-                  <line x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt + ph}" stroke="#D5DAE5" stroke-width="1"/>
-                  <line x1="${ml}" y1="${mt + ph}" x2="${W - mr}" y2="${mt + ph}" stroke="#D5DAE5" stroke-width="1"/>
-                  ${tPath ? `<path d="${tPath}" fill="none" stroke="#1E7A6E" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
-                  ${cPath ? `<path d="${cPath}" fill="none" stroke="#C94F3A" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8,4"/>` : ""}
-                  ${tLast ? `<circle cx="${tEndX.toFixed(1)}" cy="${tEndY.toFixed(1)}" r="5" fill="#1E7A6E"/>
-                    <text x="${(tEndX - 6).toFixed(1)}" y="${(tEndY - 9).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#1E7A6E">$${Math.round(tLast.value).toLocaleString("en-US")}</text>` : ""}
-                  ${cLast ? `<circle cx="${cEndX.toFixed(1)}" cy="${cEndY.toFixed(1)}" r="5" fill="#C94F3A"/>
-                    <text x="${(cEndX - 6).toFixed(1)}" y="${(cEndY + 18).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#C94F3A">$${Math.round(cLast.value).toLocaleString("en-US")}</text>` : ""}
-                  <line x1="${ml + pw - 210}" y1="14" x2="${ml + pw - 185}" y2="14" stroke="#1E7A6E" stroke-width="3"/>
-                  <text x="${ml + pw - 178}" y="18" font-size="10" fill="#1A2030">Target Portfolio</text>
-                  ${cSeries ? `<line x1="${ml + pw - 100}" y1="14" x2="${ml + pw - 75}" y2="14" stroke="#C94F3A" stroke-width="3" stroke-dasharray="8,4"/>
-                    <text x="${ml + pw - 68}" y="18" font-size="10" fill="#1A2030">Current</text>` : ""}
-                  ${xLabels}
-                  <text x="${(ml + pw / 2).toFixed(0)}" y="${H - 3}" text-anchor="middle" font-size="9" fill="#6E7E9A">Growth of $10,000 Invested</text>
-                </svg>`;
-              }
 
               // ── Risk / Return SVG (matches modal RiskReturnChart math) ────
               function makeRiskReturnSvg(tVol, tRet, cVol, cRet) {
@@ -3219,33 +3233,237 @@ export async function generatePowerPoint({
                 </svg>`;
               }
 
-              const growthSvg = makeGrowth10kSvg(ts.growthSeries, cs?.growthSeries);
               const rrSvg = makeRiskReturnSvg(ts.annualizedVolatility, ts.annualizedReturn, cs?.annualizedVolatility, cs?.annualizedReturn);
 
-              if (growthSvg) addSvg(slide, growthSvg, 0.65, 1.88, 7.2, 4.3);
-              if (rrSvg)    addSvg(slide, rrSvg,     8.1, 1.88, 5.0, 3.8);
+              // Efficient frontier is now the centerpiece of this slide.
+              if (rrSvg) addSvg(slide, rrSvg, 3.9, 1.78, 5.55, 4.2);
 
-              // Section labels
-              slide.addText("GROWTH OF $10,000", { x: 0.65, y: 1.70, w: 4.0, h: 0.16, fontSize: 7, bold: true, color: C.blue, charSpace: 1.2, margin: 0 });
-              slide.addText("RISK / RETURN  ·  EFFICIENT FRONTIER", { x: 8.1, y: 1.70, w: 5.0, h: 0.16, fontSize: 7, bold: true, color: C.blue, charSpace: 1.2, margin: 0 });
+              slide.addText("RISK / RETURN  ·  EFFICIENT FRONTIER", { x: 3.9, y: 1.60, w: 5.55, h: 0.16, fontSize: 7, bold: true, color: C.blue, charSpace: 1.2, margin: 0, align: "center" });
 
-              // Key-stat strip above charts (pulled from same window as charts)
+              // Key-stat strip — now includes the risk-adjusted Sharpe & Sortino
+              // ratios (replacing the removed growth-of-$10,000 visuals).
               const statY = 6.24;
-              const nStats = c ? 4 : 2;
+              const nStats = c ? 6 : 3;
               const statW = 11.6 / nStats;
-              statBox(slide, 0.65,                  statY, statW - 0.15, "Target CAGR",         pctF(ts.annualizedReturn),       C.tealPale,  C.teal);
-              statBox(slide, 0.65 + statW,           statY, statW - 0.15, "Target Max Drawdown", pctF(ts.maxDrawdown),            C.white,     C.coral);
+              const sx = i => 0.65 + statW * i;
+              statBox(slide, sx(0), statY, statW - 0.15, "Target CAGR",     pctF(ts.annualizedReturn), C.tealPale, C.teal);
+              statBox(slide, sx(1), statY, statW - 0.15, "Target Sharpe",   ratioF(ts.sharpeRatio),    C.white,    C.navy);
+              statBox(slide, sx(2), statY, statW - 0.15, "Target Sortino",  ratioF(ts.sortinoRatio),   C.white,    C.navy);
               if (c) {
-                statBox(slide, 0.65 + statW * 2,     statY, statW - 0.15, "Current CAGR",        pctF(cs?.annualizedReturn),      C.white,     C.navy);
-                statBox(slide, 0.65 + statW * 3,     statY, statW - 0.15, "Current Max Drawdown",pctF(cs?.maxDrawdown),           C.coralPale, C.coral);
+                statBox(slide, sx(3), statY, statW - 0.15, "Current CAGR",    pctF(cs?.annualizedReturn), C.white,     C.navy);
+                statBox(slide, sx(4), statY, statW - 0.15, "Current Sharpe",  ratioF(cs?.sharpeRatio),    C.white,     C.navy);
+                statBox(slide, sx(5), statY, statW - 0.15, "Current Sortino", ratioF(cs?.sortinoRatio),   C.coralPale, C.coral);
               }
 
               slide.addText(
-                "Based on real historical monthly prices. Efficient frontier is a theoretical illustration only — not derived from mean-variance optimization. Past performance does not guarantee future results.",
+                "Based on real historical monthly prices. Sharpe and Sortino ratios use a 4% annual risk-free rate. Efficient frontier is a theoretical illustration only — not derived from mean-variance optimization. Past performance does not guarantee future results.",
                 { x: 0.65, y: 6.88, w: 11.6, h: 0.18, fontSize: 6.5, italic: true, color: C.muted, margin: 0, align: "center" }
               );
 
               footer(slide);
+            }
+
+            // ── FEE DRAG SLIDE ───────────────────────────────────────────────
+            // The lifetime dollar cost of the fee difference between the current
+            // and proposed portfolios. Only shown when there's a real comparison.
+            if (t.weightedFeePct != null && c?.weightedFeePct != null && (Number(data.investableAssets) || 0) > 0) {
+              const pv = Number(data.investableAssets) || 0; // $M
+              const horizon = 20;
+              const grossReturnPct = 7;
+              const cmp = compareFeeDrag({
+                portfolioValue: pv,
+                currentFeePct: c.weightedFeePct,
+                proposedFeePct: t.weightedFeePct,
+                years: horizon,
+                grossReturnPct,
+              });
+              const bps = Math.round(cmp.annualFeeReductionPct * 100);
+
+              slide = pptx.addSlide();
+              title(
+                slide,
+                "PORTFOLIO STRATEGY",
+                "The Long-Term Cost of Fees",
+                `Projected over ${horizon} years at a ${grossReturnPct}% assumed gross return on ${fmtM(pv)} of investable assets.`
+              );
+
+              slide.addText(
+                "A small annual fee difference compounds: every dollar paid in fees is also a dollar that never compounds. The figures below show the cumulative impact of moving from the current weighted fee to the proposed model.",
+                { x: 0.85, y: 1.4, w: 11.4, h: 0.4, fontSize: 10.2, color: C.text, margin: 0 }
+              );
+
+              statBox(slide, 0.85, 1.9, 2.05, "Current Weighted Fee", feeF(c.weightedFeePct), C.coralPale, C.coral);
+              statBox(slide, 3.1,  1.9, 2.05, "Proposed Weighted Fee", feeF(t.weightedFeePct), C.tealPale, C.teal);
+              statBox(slide, 5.35, 1.9, 2.05, "Annual Reduction", bps >= 0 ? `${bps} bps` : `+${-bps} bps`, C.white, C.navy);
+              statBox(slide, 7.6,  1.9, 2.05, `${horizon}-Yr Fee Savings`, fmtK(Math.abs(cmp.cumulativeFeeSavings)), C.goldPale, C.gold);
+              statBox(slide, 9.85, 1.9, 2.35, "Added Ending Value", fmtK(Math.abs(cmp.endingBalanceDifference)), C.bluePale, C.blue);
+
+              // Milestone table: cumulative fees at 5 / 10 / 15 / 20 years.
+              const marks = [5, 10, 15, 20].filter(y => y <= horizon);
+              const hdr = ["Year", "Current Cumulative Fees", "Proposed Cumulative Fees", "Savings"];
+              const headerRow = hdr.map((tx, i) => ({
+                text: tx,
+                options: { bold: true, color: C.white, fill: { color: C.navy }, align: i === 0 ? "center" : "right", fontSize: 10, valign: "middle" },
+              }));
+              const bodyRows = marks.map((yr, idx) => {
+                const cur = cmp.current.rows[yr - 1]?.cumulativeFees ?? 0;
+                const pro = cmp.proposed.rows[yr - 1]?.cumulativeFees ?? 0;
+                const base = { fontSize: 10, color: C.text, valign: "middle", fill: { color: idx % 2 ? C.lightBar : C.white } };
+                return [
+                  { text: String(yr), options: { ...base, align: "center", bold: true, color: C.navy } },
+                  { text: fmtK(cur), options: { ...base, align: "right", color: C.coral } },
+                  { text: fmtK(pro), options: { ...base, align: "right", color: C.teal } },
+                  { text: fmtK(cur - pro), options: { ...base, align: "right", bold: true, color: C.gold } },
+                ];
+              });
+              slide.addTable([headerRow, ...bodyRows], {
+                x: 0.85, y: 2.75, w: 11.6,
+                colW: [1.6, 3.45, 3.45, 3.1],
+                rowH: 0.46,
+                border: { type: "solid", color: C.border, pt: 0.5 },
+                margin: [3, 8, 3, 8],
+              });
+
+              slide.addText(
+                "Illustrative only. Assumes a constant 7% gross annual return and a static fee schedule; actual fees, returns, and account values vary. Past performance does not guarantee future results.",
+                { x: 0.85, y: 6.6, w: 11.6, h: 0.4, fontSize: 8, italic: true, color: C.muted, margin: 0 }
+              );
+
+              footer(slide);
+            }
+
+            // ── MONTE CARLO PROJECTION SLIDE ─────────────────────────────────
+            // Range of plausible futures from the target portfolio's historical
+            // return/volatility. Forward-looking — complements the backtest.
+            if (ts.annualizedReturn != null && (Number(data.investableAssets) || 0) > 0) {
+              const mcYears = 20;
+              const mcInit = Number(data.investableAssets) || 0; // $M
+              const expRet = ts.annualizedReturn * 100;
+              const expVol = (ts.annualizedVolatility ?? 0.12) * 100;
+              const mc = runMonteCarlo({
+                initialValue: mcInit,
+                years: mcYears,
+                expectedReturnPct: expRet,
+                volatilityPct: expVol,
+                goalValue: mcInit * 2, // illustrative "doubling" goal
+                simulations: 3000,
+                seed: 20260624,
+              });
+
+              slide = pptx.addSlide();
+              title(
+                slide,
+                "PORTFOLIO STRATEGY",
+                "Range of Outcomes — Monte Carlo",
+                `${mc.simulations.toLocaleString()} simulated ${mcYears}-year paths using the recommended portfolio's historical return (${expRet.toFixed(1)}%) and volatility (${expVol.toFixed(1)}%).`
+              );
+
+              statBox(slide, 0.85, 1.9, 2.05, "Starting Value", fmtM(mcInit), C.white, C.navy);
+              statBox(slide, 3.1,  1.9, 2.05, "Pessimistic (10th %ile)", fmtM(mc.percentiles.p10), C.coralPale, C.coral);
+              statBox(slide, 5.35, 1.9, 2.05, "Median (50th %ile)", fmtM(mc.percentiles.p50), C.tealPale, C.teal);
+              statBox(slide, 7.6,  1.9, 2.05, "Optimistic (90th %ile)", fmtM(mc.percentiles.p90), C.bluePale, C.blue);
+              statBox(slide, 9.85, 1.9, 2.35, "Prob. of Doubling", `${Math.round((mc.successProbability ?? 0) * 100)}%`, C.goldPale, C.gold);
+
+              // Fan chart: shaded 10th–90th band with the median line.
+              function makeFanSvg(fan) {
+                if (!fan || fan.length < 2) return null;
+                const W = 1000, H = 380, ml = 70, mr = 24, mt = 20, mb = 40;
+                const pw = W - ml - mr, ph = H - mt - mb;
+                const n = fan.length - 1;
+                const maxV = Math.max(...fan.map(f => f.p90)) * 1.05;
+                const minV = Math.min(0, ...fan.map(f => f.p10));
+                const toX = y => ml + (y / Math.max(n, 1)) * pw;
+                const toY = v => mt + ph - ((v - minV) / Math.max(maxV - minV, 1)) * ph;
+                const top = fan.map(f => `${toX(f.year).toFixed(1)},${toY(f.p90).toFixed(1)}`).join(" L");
+                const bot = [...fan].reverse().map(f => `${toX(f.year).toFixed(1)},${toY(f.p10).toFixed(1)}`).join(" L");
+                const band = `M${top} L${bot} Z`;
+                const mid = fan.map((f, i) => `${i === 0 ? "M" : "L"}${toX(f.year).toFixed(1)},${toY(f.p50).toFixed(1)}`).join(" ");
+                const ticks = Array.from({ length: 5 }, (_, i) => minV + ((maxV - minV) * i) / 4);
+                const grid = ticks.map(v => {
+                  const y = toY(v).toFixed(1);
+                  return `<line x1="${ml}" y1="${y}" x2="${W - mr}" y2="${y}" stroke="#E8ECF0" stroke-width="1"/>
+                    <text x="${ml - 6}" y="${(parseFloat(y) + 4).toFixed(0)}" text-anchor="end" font-size="11" fill="#6E7E9A">$${(v).toFixed(0)}M</text>`;
+                }).join("");
+                const xlab = [0, Math.round(n / 2), n].map(y => `<text x="${toX(y).toFixed(1)}" y="${mt + ph + 22}" text-anchor="middle" font-size="11" fill="#6E7E9A">Yr ${y}</text>`).join("");
+                return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+                  <rect width="${W}" height="${H}" fill="#FFFFFF"/>
+                  ${grid}
+                  <path d="${band}" fill="#1E7A6E" opacity="0.14"/>
+                  <path d="${mid}" fill="none" stroke="#1E7A6E" stroke-width="3" stroke-linejoin="round"/>
+                  <line x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt + ph}" stroke="#D5DAE5" stroke-width="1"/>
+                  <line x1="${ml}" y1="${mt + ph}" x2="${W - mr}" y2="${mt + ph}" stroke="#D5DAE5" stroke-width="1"/>
+                  <text x="${ml + 8}" y="${mt + 14}" font-size="11" fill="#1E7A6E" font-weight="700">Shaded band: 10th–90th percentile · line: median</text>
+                  ${xlab}
+                </svg>`;
+              }
+              const fanSvg = makeFanSvg(mc.fan);
+              if (fanSvg) addSvg(slide, fanSvg, 0.85, 2.75, 11.6, 3.6);
+
+              slide.addText(
+                "Illustrative Monte Carlo projection. Annual returns are drawn from a normal distribution using the recommended portfolio's historical mean and volatility; results are not a guarantee. The doubling probability is the share of simulated paths ending at or above twice the starting value. Past performance does not guarantee future results.",
+                { x: 0.85, y: 6.5, w: 11.6, h: 0.5, fontSize: 8, italic: true, color: C.muted, margin: 0 }
+              );
+
+              footer(slide);
+            }
+
+            // ── STRESS TEST SLIDE ────────────────────────────────────────────
+            // How the recommended vs. current portfolios held up in real crises,
+            // sliced from the same historical window. Skips uncovered crises.
+            {
+              const stress = stressTest(ts.growthSeries, cs?.growthSeries).filter(s => s.covered);
+              if (stress.length > 0) {
+                slide = pptx.addSlide();
+                title(
+                  slide,
+                  "PORTFOLIO STRATEGY",
+                  "Stress Test — Historical Crises",
+                  "Cumulative return of each portfolio through major market drawdowns, drawn from the same real monthly history as the backtest."
+                );
+
+                const hdr = c
+                  ? ["Crisis Period", "Window", "Recommended", "Current", "Difference"]
+                  : ["Crisis Period", "Window", "Recommended"];
+                const headerRow = hdr.map((tx, i) => ({
+                  text: tx,
+                  options: { bold: true, color: C.white, fill: { color: C.navy }, align: i <= 1 ? "left" : "right", fontSize: 10.5, valign: "middle" },
+                }));
+                const retCell = (v, base) => ({
+                  text: v == null ? "—" : `${(v * 100).toFixed(1)}%`,
+                  options: { ...base, align: "right", color: v == null ? C.muted : v < 0 ? C.coral : C.teal },
+                });
+                const bodyRows = stress.map((s, idx) => {
+                  const base = { fontSize: 10.5, color: C.text, valign: "middle", fill: { color: idx % 2 ? C.lightBar : C.white } };
+                  const row = [
+                    { text: s.label, options: { ...base, align: "left", bold: true, color: C.navy } },
+                    { text: `${s.start} – ${s.end}`, options: { ...base, align: "left", color: C.muted } },
+                    retCell(s.target, base),
+                  ];
+                  if (c) {
+                    row.push(retCell(s.current, base));
+                    const diff = s.target != null && s.current != null ? s.target - s.current : null;
+                    row.push({
+                      text: diff == null ? "—" : `${diff >= 0 ? "+" : ""}${(diff * 100).toFixed(1)}%`,
+                      options: { ...base, align: "right", bold: true, color: diff == null ? C.muted : diff >= 0 ? C.teal : C.coral },
+                    });
+                  }
+                  return row;
+                });
+                slide.addTable([headerRow, ...bodyRows], {
+                  x: 0.85, y: 2.2, w: 11.6,
+                  colW: c ? [3.3, 2.7, 1.9, 1.9, 1.8] : [4.5, 3.5, 3.6],
+                  rowH: 0.5,
+                  border: { type: "solid", color: C.border, pt: 0.5 },
+                  margin: [3, 8, 3, 8],
+                });
+
+                slide.addText(
+                  "Returns are the cumulative change over each window using real historical monthly prices. A less-negative number indicates greater resilience. Crises without overlapping data in this backtest window are omitted. Past performance does not guarantee future results.",
+                  { x: 0.85, y: 6.5, w: 11.6, h: 0.5, fontSize: 8, italic: true, color: C.muted, margin: 0 }
+                );
+
+                footer(slide);
+              }
             }
           }
         }
