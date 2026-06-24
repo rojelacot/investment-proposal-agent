@@ -55,6 +55,10 @@ export default function App() {
     restrictionsImplementationNotes: false,
     implementationTimeline: false,
     nextSteps: true,
+    // Analytics & projection slides (require a backtest to render).
+    feeDragAnalysis: true,
+    monteCarloProjection: true,
+    stressTestAnalysis: true,
   });
 
   const [selectedServices, setSelectedServices] = useState({
@@ -2481,6 +2485,31 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
                           if (option.key === "legacyWealthTransfer") setSelectedServices((prev) => ({ ...prev, legacyTransfer: e.target.checked }));
                           if (option.key === "estatePlanningReview") setSelectedServices((prev) => ({ ...prev, estatePlanning: e.target.checked }));
                         }}
+                      />
+                      <div className="slide-card-body">
+                        <div className="slide-card-top">
+                          <span className="slide-card-label">{option.label}</span>
+                          <span className="slide-card-badge">{option.slides}</span>
+                        </div>
+                        <span className="slide-card-desc">{option.desc}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="module-section-title" style={{ marginTop: "1.25rem" }}>Analytics &amp; Projection Slides</div>
+                <p className="module-section-hint">Require a historical backtest (a concentrated position or uploaded holdings) to render.</p>
+                <div className="slide-selection-grid">
+                  {[
+                    { key: "feeDragAnalysis", label: "Fee Drag Analysis", slides: "1 slide", desc: "20-year cumulative cost of fees: current vs. proposed weighted fee." },
+                    { key: "monteCarloProjection", label: "Monte Carlo Projection", slides: "1 slide", desc: "Range of 20-year outcomes with a percentile fan and goal probability." },
+                    { key: "stressTestAnalysis", label: "Stress Test", slides: "1 slide", desc: "Returns through the 2008, 2020, and 2022 market drawdowns." },
+                  ].map((option) => (
+                    <label key={option.key} className={`slide-card ${selectedProposalModules[option.key] ? "slide-card--selected" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={!!selectedProposalModules[option.key]}
+                        onChange={(e) => setSelectedProposalModules((prev) => ({ ...prev, [option.key]: e.target.checked }))}
                       />
                       <div className="slide-card-body">
                         <div className="slide-card-top">

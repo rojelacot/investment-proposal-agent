@@ -3266,7 +3266,7 @@ export async function generatePowerPoint({
             // ── FEE DRAG SLIDE ───────────────────────────────────────────────
             // The lifetime dollar cost of the fee difference between the current
             // and proposed portfolios. Only shown when there's a real comparison.
-            if (t.weightedFeePct != null && c?.weightedFeePct != null && (Number(data.investableAssets) || 0) > 0) {
+            if (modules.feeDragAnalysis !== false && t.weightedFeePct != null && c?.weightedFeePct != null && (Number(data.investableAssets) || 0) > 0) {
               const pv = Number(data.investableAssets) || 0; // $M
               const horizon = 20;
               const grossReturnPct = 7;
@@ -3335,7 +3335,7 @@ export async function generatePowerPoint({
             // ── MONTE CARLO PROJECTION SLIDE ─────────────────────────────────
             // Range of plausible futures from the target portfolio's historical
             // return/volatility. Forward-looking — complements the backtest.
-            if (ts.annualizedReturn != null && (Number(data.investableAssets) || 0) > 0) {
+            if (modules.monteCarloProjection !== false && ts.annualizedReturn != null && (Number(data.investableAssets) || 0) > 0) {
               const mcYears = 20;
               const mcInit = Number(data.investableAssets) || 0; // $M
               const expRet = ts.annualizedReturn * 100;
@@ -3411,7 +3411,9 @@ export async function generatePowerPoint({
             // How the recommended vs. current portfolios held up in real crises,
             // sliced from the same historical window. Skips uncovered crises.
             {
-              const stress = stressTest(ts.growthSeries, cs?.growthSeries).filter(s => s.covered);
+              const stress = modules.stressTestAnalysis !== false
+                ? stressTest(ts.growthSeries, cs?.growthSeries).filter(s => s.covered)
+                : [];
               if (stress.length > 0) {
                 slide = pptx.addSlide();
                 title(
