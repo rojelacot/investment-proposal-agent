@@ -13,7 +13,7 @@ import { detectMissingInfo } from "./clarifyingQuestions";
 import MissingInfoPanel from "./MissingInfoPanel";
 import { recomputeReviewedData, getProposalQuality } from "./proposalUpgrades";
 import FileUploadBox from "./FileUploadBox";
-import { safeExtractClientData } from "./safeClientExtraction";
+import { safeExtractClientData, parseHoldingsFromText } from "./safeClientExtraction";
 import { fmtM, fmtK, fmtDollar, pct, cleanNum } from "./formatters";
 import { generatePowerPoint } from "./pptGenerator";
 import ProposalPreviewModal from "./ProposalPreviewModal";
@@ -23,6 +23,7 @@ import {
   toMonthlyReturns,
   buildTargetWeightMap,
   buildConcentratedWeightMap,
+  buildHoldingsWeightMap,
   weightedPortfolioReturns,
   summarizeReturns,
   weightedAverageAnnualReturn,
@@ -68,10 +69,21 @@ export default function App() {
   const [useRecommendedApproach, setUseRecommendedApproach] = useState(false);
   const [firmName, setFirmName] = useState("");
   const [advisorName, setAdvisorName] = useState("");
+  const [liveStrategyAllocations, setLiveStrategyAllocations] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/strategies")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setLiveStrategyAllocations(data); })
+      .catch(() => {}); // silently fall back to portfolioData.js if unavailable
+  }, []);
 
   const [collarOptions, setCollarOptions] = useState(null);
   const [collarOptionsLoading, setCollarOptionsLoading] = useState(false);
   const [collarOptionsError, setCollarOptionsError] = useState("");
+
+  // Holdings scanned from uploaded documents (used as current portfolio in backtest)
+  const [scannedHoldings, setScannedHoldings] = useState([]);
 
   // Current-vs-target portfolio backtest (real historical data, see backtest.js).
   const [backtestResult, setBacktestResult] = useState(null);
@@ -111,21 +123,6 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
     estatePlanning: false,
   });
 
-  // Extended Beacon Pointe solution directory — additional selectable options
-  const [selectedSolutions, setSelectedSolutions] = useState({
-    spiderRock: false,
-    gateway: false,
-    aperio130: false,
-    invesco130: false,
-    gateway130: false,
-    griffinQOZ: false,
-    aresADREX: false,
-    jll1031: false,
-    goldmanExchange: false,
-  });
-  function toggleSolution(key) {
-    setSelectedSolutions(prev => ({ ...prev, [key]: !prev[key] }));
-  }
 
   async function fetchPreviousClosePrice(ticker) {
     const cleanTicker = String(ticker || "").trim().toUpperCase();
@@ -1167,6 +1164,7 @@ function getSelectedPortfolioStrategyLabels() {
     setReviewData(null);
     setQualityReport(null);
     setClientType("Concentrated stock executive");
+    setScannedHoldings([]);
     setSelectedStrategies({
       crt: true,
       harvesting: true,
@@ -1175,17 +1173,6 @@ function getSelectedPortfolioStrategyLabels() {
       donorAdvisedFund: false,
       exchangeFund: false,
       estatePlanning: false,
-    });
-    setSelectedSolutions({
-      spiderRock: false,
-      gateway: false,
-      aperio130: false,
-      invesco130: false,
-      gateway130: false,
-      griffinQOZ: false,
-      aresADREX: false,
-      jll1031: false,
-      goldmanExchange: false,
     });
   }
 
@@ -1254,7 +1241,14 @@ function getSelectedPortfolioStrategyLabels() {
       return `${prev}${divider}Uploaded Source Documents:\n${extractedText}`;
     });
 
-    setStatus("Uploaded documents added to client notes.");
+    // Try to scan holdings from the uploaded document immediately
+    const found = parseHoldingsFromText(extractedText);
+    if (found.length >= 2) {
+      setScannedHoldings(found);
+      setStatus(`Document uploaded — found ${found.length} holdings. Run Agent to continue.`);
+    } else {
+      setStatus("Document uploaded and added to client notes.");
+    }
   }
 
 
@@ -1729,14 +1723,44 @@ function getSelectedPortfolioStrategyLabels() {
         (s, f) => s + ((Number(f.alloc) || 0) / 100) * (Number(f.fee) || 0), 0
       );
 
-      const hasConcentration = isUsableTicker(data?.ticker) && Number(data?.concentration) > 0;
-      const currentMap = hasConcentration
+      // Prefer the live-scanned holdings (from upload) over whatever safeExtractClientData found
+      const effectiveHoldings = scannedHoldings.length >= 2 ? scannedHoldings : (data?.currentHoldings || []);
+      const hasActualHoldings = effectiveHoldings.length >= 2;
+      const hasConcentration  = isUsableTicker(data?.ticker) && Number(data?.concentration) > 0;
+      const currentMap = hasActualHoldings
+        ? buildHoldingsWeightMap(effectiveHoldings)
+        : hasConcentration
         ? buildConcentratedWeightMap(data.ticker, data.concentration, benchmarkTicker)
         : null;
-      // Current portfolio's weighted fee: 0% on the concentrated single-stock
-      // sleeve, the benchmark ETF's published expense ratio on the remainder.
       const concPct = hasConcentration ? Math.min(Math.max(Number(data.concentration) || 0, 0), 100) : null;
-      const currentWeightedFeePct = hasConcentration
+      // Expense ratios for common ETFs / mutual funds (as % — e.g. 0.03 = 3 bps).
+      // Individual stocks have 0% ongoing fee. Anything not in this map defaults to 0.
+      const HOLDING_FEE_MAP = {
+        VOO:0.03,VTI:0.03,VXUS:0.07,BND:0.03,BNDX:0.07,
+        IVV:0.03,IWM:0.19,QQQ:0.20,SPY:0.0945,
+        VO:0.04,VB:0.05,VEA:0.05,VWO:0.08,VIG:0.06,VNQ:0.12,VYM:0.06,VUG:0.04,VTV:0.04,
+        VTEB:0.05,MUB:0.05,SUB:0.07,SCHP:0.03,
+        QUAL:0.15,USMV:0.15,MTUM:0.15,HDV:0.08,
+        VTSAX:0.04,VFIAX:0.04,VIGAX:0.05,VTIAX:0.11,VBTLX:0.05,VMFXX:0.11,VWUAX:0.26,
+        AGG:0.03,LQD:0.14,HYG:0.48,TLT:0.15,IEF:0.15,SHV:0.15,BIL:0.14,
+        GLD:0.40,IAU:0.25,SLV:0.50,
+        ARTKX:0.63,APHIX:0.96,DODFX:0.63,ODVIX:0.88,ARSIX:1.18,POLIX:0.80,
+        JHQDX:0.60,RAPIX:0.81,CCLFX:2.32,BPMAX:3.29,GRIFX:1.72,
+        // individual stocks → 0 (not in map, falls back to 0 below)
+      };
+      const currentWeightedFeePct = hasActualHoldings
+        ? (() => {
+            // Weight-average fees across holdings; stocks not in the map → 0% fee
+            const h = effectiveHoldings;
+            const total = h.reduce((s, x) => s + (Number(x.pct) || 0), 0);
+            if (total <= 0) return null;
+            const blended = h.reduce((s, x) => {
+              const fee = HOLDING_FEE_MAP[(x.ticker || "").toUpperCase()] ?? 0;
+              return s + fee * (Number(x.pct) || 0) / total;
+            }, 0);
+            return blended;
+          })()
+        : hasConcentration
         ? (1 - concPct / 100) * (BENCHMARK_FEE_BY_TICKER[benchmarkTicker] ?? 0)
         : null;
 
@@ -1772,7 +1796,9 @@ function getSelectedPortfolioStrategyLabels() {
       let currentAvgAnnualReturn = null;
       if (currentMap) {
         const currentReturns = weightedPortfolioReturns(currentMap.weights, returnsByTicker);
+        console.log("[backtest] current portfolio: window", currentReturns[0]?.date, "→", currentReturns[currentReturns.length-1]?.date, `(${currentReturns.length} months)`);
         currentSummary = summarizeReturns(currentReturns);
+        console.log("[backtest] current maxDrawdown:", (currentSummary?.maxDrawdown * 100).toFixed(1) + "%", "| annualized:", (currentSummary?.annualizedReturn * 100).toFixed(1) + "%");
         currentAvgAnnualReturn = weightedAverageAnnualReturn(currentMap.weights, returnsByTicker);
       }
 
@@ -1792,6 +1818,8 @@ function getSelectedPortfolioStrategyLabels() {
               ticker: data.ticker,
               concentration: data.concentration,
               weightedFeePct: currentWeightedFeePct,
+              fromUploadedHoldings: hasActualHoldings,
+              holdingCount: hasActualHoldings ? effectiveHoldings.length : null,
             }
           : null,
         benchmarkTicker,
@@ -2088,6 +2116,7 @@ function getSelectedPortfolioStrategyLabels() {
         backtest: proposal.backtest || null,
         firmName: firmName.trim() || "Meridian Wealth Partners",
         advisorName: advisorName.trim(),
+        liveStrategyAllocations,
       });
 
       downloadBlob(blob, `${name.replaceAll(" ", "_")}_Investment_Proposal.pptx`);
@@ -2167,20 +2196,6 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
 
         <div className="output-panel">
           <div className="empty-state">
-            {!status && !proposal && !reviewData && clarifyingQuestions.length === 0 && (
-              <>
-                <h3>Agent Review</h3>
-                <p>
-                  Paste client notes or upload documents, then click Run Agent. The agent will extract client data,
-                  recommend a portfolio approach, and let you review strategy selections before generating files.
-                </p>
-                <p className="agent-review-files">
-                  <strong>Word Document</strong> includes client-specific numbers, recommendations, strategy allocation,
-                  assumptions, and next steps. <strong>PowerPoint Deck</strong> includes styled slides with visuals,
-                  charts, flow diagrams, and client-specific numbers.
-                </p>
-              </>
-            )}
           </div>
 
           {status && <p className="status">{status}</p>}
@@ -2224,6 +2239,39 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
                     </ul>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {scannedHoldings.length >= 2 && (
+            <div className="strategy-review-box strategy-review-box-clean">
+              <h4>✓ Holdings Scanned — {scannedHoldings.length} positions found</h4>
+              <p>These will be used as the current portfolio in the backtest comparison.</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", marginTop: 6 }}>
+                {scannedHoldings.map(h => (
+                  <span key={h.ticker} style={{ fontSize: 11, background: "#F0F4FF", border: "1px solid #C0D4F5", borderRadius: 6, padding: "3px 9px", color: "var(--navy)", fontWeight: 600 }}>
+                    {h.ticker} <span style={{ fontWeight: 400, color: "#6b7a99" }}>{h.pct.toFixed(1)}%</span>
+                  </span>
+                ))}
+              </div>
+              <div style={{ marginTop: 10, fontSize: 11, color: "#9bacc8" }}>
+                Not right?{" "}
+                <label style={{ cursor: "pointer", color: "var(--blue)", textDecoration: "underline", fontWeight: 600 }}>
+                  Upload a simple holdings Excel instead
+                  <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const { default: XLSX } = await import("xlsx");
+                    const ab = await file.arrayBuffer();
+                    const wb = XLSX.read(ab, { type: "array" });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    const csv = XLSX.utils.sheet_to_csv(ws);
+                    const found = parseHoldingsFromText(csv);
+                    if (found.length >= 2) setScannedHoldings(found);
+                    e.target.value = "";
+                  }} />
+                </label>
+                {" "}(two columns: Ticker, %)
               </div>
             </div>
           )}
@@ -2288,15 +2336,6 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
                 </label>
               </div>
 
-              <div className="assumptions-box">
-                <h4>Review Before Downloading</h4>
-                <ul>
-                  <li>Verify all figures match the client's actual data.</li>
-                  <li>Confirm the CRT deduction reflects the correct client age.</li>
-                  <li>Confirm these numbers before downloading the Word or PowerPoint.</li>
-                </ul>
-              </div>
-
               <div className="strategy-review-box strategy-review-box-clean proposal-modules-box">
                 <h4>Slide Selection</h4>
                 <p>Choose which slides to include in the PowerPoint deck.</p>
@@ -2304,10 +2343,10 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
                 <div className="module-section-title">Core Slides</div>
                 <div className="slide-selection-grid">
                   {[
-                    { key: "executiveSummary", label: "Executive Summary", slides: "1 slide", desc: "Key metrics, strategy overview, and planning rationale in a single summary layout." },
-                    { key: "clientProfileGoals", label: "Client Profile & Goals", slides: "1 slide", desc: "Client background, household goals, planning timeline, and key constraints." },
-                    { key: "recommendedInvestmentApproach", label: "Recommended Investment Approach", slides: "2 slides", desc: "Portfolio strategy table and an allocation donut chart with risk profile overlay." },
-                    { key: "nextSteps", label: "Next Steps", slides: "1 slide", desc: "Numbered action plan with advisor follow-up items and implementation checklist." },
+                    { key: "executiveSummary", label: "Executive Summary", slides: "1 slide", desc: "Key metrics and strategy overview." },
+                    { key: "clientProfileGoals", label: "Client Profile & Goals", slides: "1 slide", desc: "Background, goals, and planning timeline." },
+                    { key: "recommendedInvestmentApproach", label: "Recommended Investment Approach", slides: "2 slides", desc: "Portfolio strategy table and allocation chart." },
+                    { key: "nextSteps", label: "Next Steps", slides: "1 slide", desc: "Action plan and implementation checklist." },
                   ].map((option) => (
                     <label key={option.key} className={`slide-card ${selectedProposalModules[option.key] ? "slide-card--selected" : ""}`}>
                       <input
@@ -2331,8 +2370,8 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
                 <div className="module-section-title" style={{ marginTop: "1.25rem" }}>Planning Module Slides</div>
                 <div className="slide-selection-grid">
                   {[
-                    { key: "riskManagementOverview", label: "Risk Assessment Overview", slides: "1 slide", desc: "Risk spectrum, downside/upside scenario comparison, and risk profile rationale." },
-                    { key: "estatePlanningReview", label: "Estate Planning", slides: "2 slides", desc: "Estate value breakdown pie chart + transfer flow visual with trust structures." },
+                    { key: "riskManagementOverview", label: "Risk Assessment Overview", slides: "1 slide", desc: "Risk spectrum and downside/upside scenario comparison." },
+                    { key: "estatePlanningReview", label: "Estate Planning", slides: "2 slides", desc: "Estate breakdown and trust transfer flow visual." },
                   ].map((option) => (
                     <label key={option.key} className={`slide-card ${selectedProposalModules[option.key] ? "slide-card--selected" : ""}`}>
                       <input
@@ -2368,19 +2407,19 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
                       key: "crt",
                       label: "Charitable Remainder Trust",
                       slides: "2 slides",
-                      desc: "CRT contribution flow diagram + comparison table showing sell-now vs. fund-CRT with tax savings, annual payout, and concentration reduction.",
+                      desc: "CRT flow diagram and sell-now vs. CRT comparison table.",
                     },
                     {
                       key: "harvesting",
                       label: "Leveraged Tax-Loss Harvesting",
                       slides: "2 slides",
-                      desc: "130/30 sleeve bar chart with long/short exposure + federal and state tax savings breakdown with estimated annual harvest losses.",
+                      desc: "130/30 exposure chart and annual tax savings breakdown.",
                     },
                     {
                       key: "collar",
                       label: "Options Collar",
                       slides: "1 slide",
-                      desc: "Payoff line chart showing protected collar range vs. uncollared position, with put floor, call cap, and prior-close price callouts.",
+                      desc: "Payoff chart with put floor, call cap, and protected range.",
                     },
                   ].map((option) => (
                     <label key={option.key} className={`slide-card ${selectedStrategies[option.key] ? "slide-card--selected" : ""}`}>
@@ -2418,126 +2457,6 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
                     )}
                   </div>
                 )}
-              </div>
-
-              {/* ── Solution Directory ─────────────────────────────────── */}
-              <div className="strategy-review-box strategy-review-box-clean">
-                <h4>Solution Directory</h4>
-                <p style={{ fontSize: "0.78rem", color: "#888", marginBottom: "0.75rem" }}>
-                  FOR INTERNAL USE ONLY — Beacon Pointe–approved concentrated position solutions. Check to flag for inclusion in the proposal.
-                </p>
-
-                {/* Options-Based */}
-                <div className="module-section-title">Options-Based Solutions</div>
-                <div className="slide-selection-grid">
-                  {[
-                    {
-                      key: "spiderRock",
-                      label: "SpiderRock (BlackRock)",
-                      badge: "SMA · $500K min",
-                      desc: "Customized options overlay strategies for concentrated positions, diversification via hedging, income via put-selling, and structured note replication. Custodied at Schwab / Fidelity. Fee: 0.50%–0.85%. Contact: Adam Butterfield — Adam.Butterfield@blackrock.com",
-                    },
-                    {
-                      key: "gateway",
-                      label: "Gateway (F.K.A. Belmont)",
-                      badge: "SMA · $500K min",
-                      desc: "Options-only firm offering collars, covered calls, and other yield/protection strategies for single-stock concentrations. Custodied at Schwab / Fidelity. Fee: 0.50%. Contact: Stephen Solaka — SSolaka@gia.com",
-                    },
-                  ].map(opt => (
-                    <label key={opt.key} className={`slide-card ${selectedSolutions[opt.key] ? "slide-card--selected" : ""}`}>
-                      <input type="checkbox" checked={!!selectedSolutions[opt.key]} onChange={() => toggleSolution(opt.key)} />
-                      <div className="slide-card-body">
-                        <div className="slide-card-top">
-                          <span className="slide-card-label">{opt.label}</span>
-                          <span className="slide-card-badge">{opt.badge}</span>
-                        </div>
-                        <span className="slide-card-desc">{opt.desc}</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-
-                {/* 130/30 */}
-                <div className="module-section-title" style={{ marginTop: "1.25rem" }}>Leveraged Tax-Efficient (130:30)</div>
-                <div className="slide-selection-grid">
-                  {[
-                    {
-                      key: "aperio130",
-                      label: "Aperio 130:30 (BlackRock)",
-                      badge: "SMA · $1M min (Schwab)",
-                      desc: "130% long / 30% short U.S. equity strategy for tax alpha vs. long-only. ~20–30 long + ~30 short positions; slowly reduces concentrated holdings via harvesting. Fee: 0.35% on funding amount. Contact: Maureen Sullivan — Maureen.Sullivan@blackrock.com",
-                    },
-                    {
-                      key: "invesco130",
-                      label: "Invesco 130:30",
-                      badge: "SMA · $1M min (Schwab)",
-                      desc: "Independent manager; same 130/30 structure for tax alpha and concentration reduction. ~20–30 long + ~30 short positions. Fee: 0.30%. Contact: Josh Rogers — Josh.Rogers@invesco.com",
-                    },
-                    {
-                      key: "gateway130",
-                      label: "Gateway 130:30",
-                      badge: "SMA · $1M min (Schwab)",
-                      desc: "Natixis affiliate with ~50 yrs of quantitative equity / options experience. Risk-conscious, tax-aware 130/30. Fee: 0.23% on gross exposure. Contact: Stephen Solaka — SSolaka@gia.com",
-                    },
-                  ].map(opt => (
-                    <label key={opt.key} className={`slide-card ${selectedSolutions[opt.key] ? "slide-card--selected" : ""}`}>
-                      <input type="checkbox" checked={!!selectedSolutions[opt.key]} onChange={() => toggleSolution(opt.key)} />
-                      <div className="slide-card-body">
-                        <div className="slide-card-top">
-                          <span className="slide-card-label">{opt.label}</span>
-                          <span className="slide-card-badge">{opt.badge}</span>
-                        </div>
-                        <span className="slide-card-desc">{opt.desc}</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-
-                {/* Real Estate / 1031 / Exchange Fund */}
-                <div className="module-section-title" style={{ marginTop: "1.25rem" }}>Real Estate · 1031 Exchange · Exchange Fund</div>
-                <div className="slide-selection-grid">
-                  {[
-                    {
-                      key: "griffinQOZ",
-                      label: "Griffin Capital QOZ Fund IV",
-                      badge: "LP · $150K min · Accredited",
-                      desc: "Opportunity Zone real estate fund — defers capital gains over 10-yr horizon via multifamily development in designated QOZ areas. Final close 2026. Fee: 1.60% mgmt + 7% preferred return. Contact: Scott Street — sstreet@griffincapital.com",
-                    },
-                    {
-                      key: "aresADREX",
-                      label: "Ares 1031 Exchange (ADREX/AIREX)",
-                      badge: "DST → Private REIT · $500K min · Accredited",
-                      desc: "1031 into institutional DST (master-leased to Ares REIT), then 721 UPREIT after 2 years for diversified core real estate. ADREX 11 approved at Schwab. Contact: Nicole Edwards — nedwards@aresmgmt.com",
-                    },
-                    {
-                      key: "jll1031",
-                      label: "JLL 1031 Exchange Fund",
-                      badge: "DST → Private REIT · $500K min · Accredited",
-                      desc: "1031 into institutional quality DST, then 721 UPREIT into JLL Property Trust after 2 years. Fee: 1.5%–2.0% upfront + 40bps annual. Contact: David Perkes — David.Perkes@lasalle.com",
-                    },
-                    {
-                      key: "goldmanExchange",
-                      label: "Goldman Sachs Exchange Fund III",
-                      badge: "LP · $1M min · Qualified Purchaser",
-                      desc: "Exchange fund — contribute low-basis concentrated stock(s) for immediate diversification benchmarked to Russell 3000. After 7 years redeem for basket of 25–35 securities. Fee: 85bps. Final close target ~2028. Contact: Brendan Feehan at Goldman Sachs.",
-                    },
-                  ].map(opt => (
-                    <label key={opt.key} className={`slide-card ${selectedSolutions[opt.key] ? "slide-card--selected" : ""}`}>
-                      <input type="checkbox" checked={!!selectedSolutions[opt.key]} onChange={() => toggleSolution(opt.key)} />
-                      <div className="slide-card-body">
-                        <div className="slide-card-top">
-                          <span className="slide-card-label">{opt.label}</span>
-                          <span className="slide-card-badge">{opt.badge}</span>
-                        </div>
-                        <span className="slide-card-desc">{opt.desc}</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-
-                <div style={{ marginTop: "0.75rem", fontSize: "0.72rem", color: "#aaa", fontStyle: "italic" }}>
-                  *** Advisors should always consult the respective firms due to the complex nature of the underlying strategies. Leverage-based strategies (130/30) require advisor suitability review prior to client engagement.
-                </div>
               </div>
 
               {reviewData && (() => {

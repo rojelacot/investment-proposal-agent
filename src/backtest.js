@@ -94,32 +94,65 @@ export function buildConcentratedWeightMap(ticker, concentrationPct, benchmarkTi
 }
 
 /** Combines per-ticker monthly return series into one weighted portfolio return
- *  series, using only the dates where every weighted ticker has data (so the
- *  comparison spans a single common, apples-to-apples window). Weights are
- *  renormalized across whatever tickers actually have data. */
+ *  series. Rather than requiring ALL tickers to have data on every date (which
+ *  causes a single short-history minor position — e.g. a money-market fund with
+ *  only 2 years of Yahoo Finance coverage — to collapse the entire backtest
+ *  window), this function finds the EARLIEST window start where at least 80% of
+ *  portfolio weight has data, then runs the intersection only on those tickers.
+ *  Weights are renormalized across the active tickers so the sum is always 1. */
 export function weightedPortfolioReturns(weights, returnsByTicker) {
   const tickers = Object.keys(weights).filter(
     t => t !== "__proxied" && weights[t] > 0 && returnsByTicker[t]?.length
   );
   if (tickers.length === 0) return [];
 
+  const totalWeight = tickers.reduce((s, t) => s + weights[t], 0) || 1;
+
+  // Find each ticker's earliest return date (returnsByTicker[t] is already sorted
+  // ascending by toMonthlyReturns, so index 0 is the earliest month).
+  const tickerStart = Object.fromEntries(
+    tickers.map(t => [t, returnsByTicker[t][0].date])
+  );
+
+  // Collect unique start dates, sort ascending (earliest first).
+  const candidateDates = [...new Set(Object.values(tickerStart))].sort();
+
+  // Walk from earliest to latest candidate start date. Stop at the first date
+  // where cumulative weight of tickers starting ON OR BEFORE that date hits 80%.
+  // This picks the longest possible window that still represents the portfolio well.
+  let windowStart = candidateDates[candidateDates.length - 1]; // safe fallback
+  for (const candidate of candidateDates) {
+    const coveredWeight = tickers
+      .filter(t => tickerStart[t] <= candidate)
+      .reduce((s, t) => s + weights[t], 0);
+    if (coveredWeight / totalWeight >= 0.80) {
+      windowStart = candidate;
+      break;
+    }
+  }
+
+  // Active tickers: those whose history starts at or before the chosen window start.
+  const active = tickers.filter(t => tickerStart[t] <= windowStart);
+
   const byDate = {};
-  for (const t of tickers) {
+  for (const t of active) {
     for (const { date, return: r } of returnsByTicker[t]) {
       byDate[date] = byDate[date] || {};
       byDate[date][t] = r;
     }
   }
 
+  // Intersection: dates where every ACTIVE ticker has data (minor positions that
+  // have data gaps mid-series are also excluded per-date, not per-window).
   const dates = Object.keys(byDate)
-    .filter(d => tickers.every(t => byDate[d][t] != null))
+    .filter(d => active.every(t => byDate[d][t] != null))
     .sort();
 
-  const totalWeight = tickers.reduce((s, t) => s + weights[t], 0) || 1;
+  const activeWeight = active.reduce((s, t) => s + weights[t], 0) || 1;
 
   return dates.map(date => ({
     date,
-    return: tickers.reduce((sum, t) => sum + (weights[t] / totalWeight) * byDate[date][t], 0),
+    return: active.reduce((sum, t) => sum + (weights[t] / activeWeight) * byDate[date][t], 0),
   }));
 }
 
@@ -231,4 +264,26 @@ export function summarizeReturns(monthlyReturns) {
     maxDrawdown,
     growthSeries,
   };
+}
+
+/** Builds a weight map directly from parsed holdings [{ticker, pct}] extracted
+ *  from an uploaded portfolio statement. `pct` values are assumed to already
+ *  sum to ~100 (they are normalized here anyway). Non-tradable tickers are
+ *  passed through — the caller's fetchTickerHistory will simply return null for
+ *  them and they'll be excluded from the backtest with a missing-ticker note. */
+export function buildHoldingsWeightMap(holdings) {
+  const weights = {};
+  let total = 0;
+  for (const h of holdings) {
+    const t = (h.ticker || "").trim().toUpperCase();
+    const pct = Number(h.pct) || 0;
+    if (t && pct > 0) {
+      weights[t] = (weights[t] || 0) + pct;
+      total += pct;
+    }
+  }
+  if (total === 0) return { weights: {}, coveragePct: 0 };
+  // Normalize to fractions (backtest functions expect 0–1 weights)
+  for (const t of Object.keys(weights)) weights[t] /= total;
+  return { weights, coveragePct: 100 };
 }

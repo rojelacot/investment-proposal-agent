@@ -310,7 +310,12 @@ export function safeExtractClientData(notes, clientName, oldExtractClientData) {
   cleaned.embeddedGain = Math.max(cleaned.stockPosition - cleaned.costBasis, 0);
   cleaned.immediateTax = cleaned.embeddedGain * (cleaned.totalTaxRate / 100);
 
-  cleaned.crtAllocation = cleaned.stockPosition * 0.30;
+  // CRT size: 10–20% of stock position based on charitable intent signals in notes.
+  // Strong signals (very charitable) → 20%; moderate → 15%; no signals → 10%.
+  const highCharity = /\b(very\s+charitable|deeply\s+charitable|philanthropi|foundation|donor.advised|charity\s+is\s+a\s+priority|charitably\s+inclined|major\s+giver|legacy\s+giving|significant\s+giving|loves?\s+to\s+give|passion.*giv|giv.*passion)\b/i.test(notes);
+  const someCharity = /\b(charitable|philanthrop|giving|donate|donating|nonprofit|non.profit|church|synagogue|temple|cause|legacy|estate\s+plan)\b/i.test(notes);
+  const crtPct = highCharity ? 0.20 : someCharity ? 0.15 : 0.10;
+  cleaned.crtAllocation = cleaned.stockPosition * crtPct;
   cleaned.harvestingSleeve = cleaned.stockPosition * 0.30;
   cleaned.collarAllocation = cleaned.stockPosition * 0.30;
 
@@ -349,5 +354,152 @@ export function safeExtractClientData(notes, clientName, oldExtractClientData) {
 
   cleaned.drawdown40Impact = cleaned.stockPosition * 0.4;
 
+  // Parse actual holdings from uploaded document text (if present)
+  const holdings = parseHoldingsFromText(notes);
+  if (holdings.length >= 2) cleaned.currentHoldings = holdings;
+
   return cleaned;
+}
+
+// ─── Holdings parser ──────────────────────────────────────────────────────────
+// Extracts {ticker, pct} pairs from portfolio report text (PDF, XLSX, CSV, DOCX).
+// Works on both structured CSV exports ("AAPL,Apple Inc.,35.2%") and the messier
+// text that pdfjsLib produces from scanned/rendered PDF statements.
+
+const HOLDING_IGNORE = new Set([
+  "ETF","IRA","LLC","LTD","INC","USD","AUM","YTD","NAV","TBD","SMA","REIT",
+  "TOTAL","CASH","PAGE","DATE","TYPE","FUND","BOND","NOTE","CORP","INTL",
+  "CLASS","UNIT","ACCOUNT","VALUE","PRICE","SHARES","MARKET","SYMBOL","NAME",
+  "DESCRIPTION","ALLOC","WEIGHT","AND","THE","FOR","NOT","ALL","NEW","MKT",
+  "EST","YR","QTR","JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP",
+  "OCT","NOV","DEC","USA","AM","PM","NET","TAX","GAIN","LOSS","COST","BASIS",
+  "UNREALIZED","REALIZED","ACCRUED","INCOME","DIVIDEND","INTEREST","FEE",
+]);
+
+function isValidTicker(t) {
+  // Accept plain tickers (AAPL) and share-class variants (BRK.B, BF.A)
+  return !!t && /^[A-Z]{1,5}(\.[A-Z])?$/.test(t) && !HOLDING_IGNORE.has(t.split(".")[0]);
+}
+
+/** Normalize ticker for Yahoo Finance: BRK.B → BRK-B */
+function normalizeTicker(t) {
+  return (t || "").replace(/\./g, "-");
+}
+
+function normalizeHoldings(raw) {
+  // raw = [{ticker, value}] or [{ticker, pct}]
+  if (raw.length < 2) return [];
+  // Deduplicate — sum values/pcts for same ticker
+  const deduped = new Map();
+  for (const h of raw) {
+    const key = h.ticker;
+    const existing = deduped.get(key) || { ticker: key, value: 0, pct: 0 };
+    if (h.value !== undefined) existing.value += h.value;
+    if (h.pct   !== undefined) existing.pct   += h.pct;
+    deduped.set(key, existing);
+  }
+  const result = [...deduped.values()];
+  // Convert values → pct if needed
+  const useValue = result[0].value > 0;
+  const total = result.reduce((s, h) => s + (useValue ? h.value : h.pct), 0);
+  if (total <= 0) return [];
+  const normalized = result.map(h => ({
+    ticker: h.ticker,
+    pct: ((useValue ? h.value : h.pct) / total) * 100,
+  })).filter(h => h.pct > 0.01);
+  return normalized.length >= 2 ? normalized : [];
+}
+
+/** Splits a single CSV line respecting RFC 4180 double-quoting.
+ *  "NVDA","$46,500,000" → ["NVDA", "$46,500,000"] instead of ["NVDA", '"$46', '500', '000"'] */
+function parseCSVRow(line) {
+  const cells = [];
+  let cur = "";
+  let inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuote && line[i + 1] === '"') { cur += '"'; i++; } // escaped quote
+      else { inQuote = !inQuote; }
+    } else if (ch === "," && !inQuote) {
+      cells.push(cur.trim());
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  cells.push(cur.trim());
+  return cells;
+}
+
+export function parseHoldingsFromText(text) {
+  if (!text || text.length < 50) return [];
+
+  const lines = text.split(/[\n\r]+/).map(l => l.trim()).filter(Boolean);
+
+  // ── Strategy 1: Structured CSV/TSV with a header row ─────────────────────
+  // Detects header row containing "Symbol"/"Ticker" + "Market Value"/"%" columns.
+  for (let hi = 0; hi < Math.min(lines.length, 15); hi++) {
+    const isTab = lines[hi].includes("\t");
+    // For TSV use simple split; for CSV use the RFC 4180-aware parser
+    const splitRow = (line) =>
+      isTab ? line.split("\t").map(c => c.trim()) : parseCSVRow(line);
+
+    const cols = splitRow(lines[hi]).map(c => c.replace(/^"|"$/g, "").toLowerCase());
+
+    const symIdx = cols.findIndex(c => /^(symbol|ticker|sym|tick)$/.test(c));
+    if (symIdx < 0) continue;
+
+    const valIdx = cols.findIndex(c => /market.?value|mkt.?val|market val|\bvalue\b|\bbalance\b|\bholdings\b|\bamount\b/i.test(c));
+    const pctIdx = cols.findIndex(c => /^(%|pct|percent|weight|alloc|allocation)$/.test(c));
+    if (valIdx < 0 && pctIdx < 0) continue;
+
+    const raw = [];
+    for (let ri = hi + 1; ri < lines.length; ri++) {
+      const row = splitRow(lines[ri]);
+      if (row.length <= Math.max(symIdx, valIdx >= 0 ? valIdx : 0, pctIdx >= 0 ? pctIdx : 0)) continue;
+      const ticker = normalizeTicker((row[symIdx] || "").replace(/^"|"$/g, "").trim().toUpperCase());
+      if (!isValidTicker(ticker.replace(/-/g, "."))) continue; // validate pre-normalization form
+
+      if (pctIdx >= 0) {
+        const pct = parseFloat((row[pctIdx] || "").replace(/[%,\s"]/g, ""));
+        if (isFinite(pct) && pct > 0) raw.push({ ticker, pct });
+      } else {
+        const value = parseFloat((row[valIdx] || "").replace(/[$,\s"]/g, ""));
+        if (isFinite(value) && value > 0) raw.push({ ticker, value });
+      }
+    }
+
+    const result = normalizeHoldings(raw);
+    if (result.length >= 2) return result;
+  }
+
+  // ── Strategy 2: Line-by-line percentage scan (free-form text / PDF) ──────
+  const raw = [];
+  for (const line of lines) {
+    const pctMatch = line.match(/([\d,]+\.?\d*)\s*%/);
+    if (!pctMatch) continue;
+    const pct = parseFloat(pctMatch[1].replace(/,/g, ""));
+    if (!isFinite(pct) || pct < 0.1 || pct > 99) continue;
+
+    let ticker = null;
+    // CSV: first field
+    const csvM = line.match(/^([A-Z]{1,5})[,\t]/);
+    if (csvM && isValidTicker(csvM[1])) ticker = csvM[1];
+    // Start of line: TICKER followed by a word char
+    if (!ticker) {
+      const startM = line.match(/^([A-Z]{2,5})\s+\S/);
+      if (startM && isValidTicker(startM[1])) ticker = startM[1];
+    }
+    // Any uppercase word before the %
+    if (!ticker) {
+      const before = line.slice(0, line.indexOf(pctMatch[0]));
+      for (const m of [...before.matchAll(/\b([A-Z]{2,5})\b/g)]) {
+        if (isValidTicker(m[1])) { ticker = m[1]; break; }
+      }
+    }
+    if (ticker) raw.push({ ticker, pct });
+  }
+
+  return normalizeHoldings(raw);
 }
