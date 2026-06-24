@@ -191,6 +191,32 @@ html {
   padding-top: 4px;
 }
 
+/* ── Firm Settings card ────────────────────────────────────────────────── */
+
+.firm-settings-card h2 {
+  margin-bottom: 20px;
+}
+
+.firm-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.firm-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.firm-settings-field label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
 /* ── Cards & form (paste-notes screen) ────────────────────────────────── */
 
 .card {

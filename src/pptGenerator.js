@@ -56,6 +56,9 @@ export async function generatePowerPoint({
   riskNumber = null,
   fundSwaps = {},
   backtest = null,
+  firmName = "Meridian Wealth Partners",
+  advisorName = "",
+  liveStrategyAllocations = null,
 }) {
 
   // Convenience aliases that match the in-component variable names
@@ -752,7 +755,7 @@ export async function generatePowerPoint({
       });
 
       // Firm name and tagline (no client numbers on cover)
-      slide.addText("MERIDIAN WEALTH PARTNERS", {
+      slide.addText((firmName || "Meridian Wealth Partners").toUpperCase(), {
         x: 0.75, y: 3.95, w: 6.4, h: 0.24,
         fontSize: 11.5, color: C.goldLight, charSpace: 2.8, bold: true, margin: 0,
       });
@@ -761,7 +764,10 @@ export async function generatePowerPoint({
         line: { color: C.goldLight, width: 1.5 },
       });
       const prepDate = new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
-      slide.addText(`Prepared ${prepDate}  ·  Private & Confidential`, {
+      const preparedByLine = advisorName
+        ? `Prepared by ${advisorName}  ·  ${prepDate}  ·  Private & Confidential`
+        : `Prepared ${prepDate}  ·  Private & Confidential`;
+      slide.addText(preparedByLine, {
         x: 0.75, y: 4.45, w: 6.4, h: 0.18,
         fontSize: 8.5, color: "8A9AB5", margin: 0,
       });
@@ -2607,7 +2613,34 @@ export async function generatePowerPoint({
             swappedFrom: f.name,
           };
         });
-        const groupTotals    = getGroupTotals(selectedPortfolioKey, selectedRiskKey);
+        // Use live Excel allocations for top-level group totals if available,
+        // otherwise fall back to the computed values from portfolioData.js.
+        const STRATEGY_KEY_MAP = {
+          corePrivate:           "Core Private",
+          selectLiquidity:       "Select Liquidity",
+          traditional:           "Traditional",
+          focusedB:              "Focused B",
+          selectLiquidityUsBias: "Select Liquidity",
+          traditionalUsBias:     "Traditional",
+        };
+        const RISK_KEY_MAP = {
+          conservative:          "Conservative",
+          moderatelyConservative:"Moderately Conservative",
+          conservativePlus:      "Conservative Plus",
+          balanced:              "Balanced",
+          balancedPlus:          "Balanced Plus",
+          growth:                "Growth",
+          growthPlus:            "Growth Plus",
+          aggressive:            "Aggressive",
+        };
+        const liveAlloc = liveStrategyAllocations
+          ?.[STRATEGY_KEY_MAP[selectedPortfolioKey]]
+          ?.[RISK_KEY_MAP[selectedRiskKey]];
+
+        const groupTotals = liveAlloc
+          ? { Equity: liveAlloc["Equity"] || 0, "Fixed Income": liveAlloc["Fixed Income"] || 0, Alternatives: liveAlloc["Alternatives"] || 0, Cash: liveAlloc["Cash"] || 0 }
+          : getGroupTotals(selectedPortfolioKey, selectedRiskKey);
+
         const subGroupTotals = getSubGroupTotals(selectedPortfolioKey, selectedRiskKey);
         const hasAnySwap     = realFunds.some(f => f.swappedFrom);
         const equityPct      = groupTotals["Equity"]       || 0;
