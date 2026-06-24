@@ -2988,7 +2988,7 @@ export async function generatePowerPoint({
 
             // Target (recommended) panel
             card(slide, panelX1, panelY, panelW, panelH, "Recommended (Target) Portfolio", "", C.white);
-            statBox(slide, panelX1 + 0.22, panelY + 0.62, (panelW - 0.66) / 2, "Annualized Return (10-Yr Avg)", pctF(t.avgAnnualReturn?.value), C.tealPale, C.teal);
+            statBox(slide, panelX1 + 0.22, panelY + 0.62, (panelW - 0.66) / 2, "Annualized Return (CAGR)", pctF(ts.annualizedReturn), C.tealPale, C.teal);
             statBox(slide, panelX1 + 0.22 + (panelW - 0.66) / 2 + 0.22, panelY + 0.62, (panelW - 0.66) / 2, "Annualized Volatility", pctF(ts.annualizedVolatility), C.white, C.navy);
             statBox(slide, panelX1 + 0.22, panelY + 1.46, (panelW - 0.66) / 2, "Max Drawdown", pctF(ts.maxDrawdown), C.white, C.coral);
             statBox(slide, panelX1 + 0.22 + (panelW - 0.66) / 2 + 0.22, panelY + 1.46, (panelW - 0.66) / 2, "Growth of $10,000", growth10k(ts.cumulativeReturn), C.tealPale, C.teal);
@@ -2998,16 +2998,19 @@ export async function generatePowerPoint({
               { x: panelX1 + 0.22, y: panelY + 2.30, w: panelW - 0.44, h: 0.5, fontSize: 7.5, color: C.muted, margin: 0, fit: "shrink" }
             );
 
-            // Current (approximate) panel — only when concentrated-position
-            // data exists in the client's notes (see backtest.js).
+            // Current portfolio panel — from uploaded holdings or concentrated-position approximation
             if (c) {
-              card(slide, panelX2, panelY, panelW, panelH, "Current Portfolio (Approximate)", "", C.bluePale);
-              statBox(slide, panelX2 + 0.22, panelY + 0.62, (panelW - 0.66) / 2, "Annualized Return (10-Yr Avg)", pctF(c.avgAnnualReturn?.value), C.white, C.navy);
+              const currentTitle = c.fromUploadedHoldings ? "Current Portfolio" : "Current Portfolio (Approximate)";
+              const currentNote = c.fromUploadedHoldings
+                ? `Weighted avg. fee: ${feeF(c.weightedFeePct)}  ·  from ${c.holdingCount || "uploaded"} holdings`
+                : `Weighted avg. fee: ${feeF(c.weightedFeePct)}  ·  approx. ${(c.concentration || 0).toFixed(1)}% ${c.ticker} + ${(100 - (c.concentration || 0)).toFixed(1)}% ${bt.benchmarkTicker}`;
+              card(slide, panelX2, panelY, panelW, panelH, currentTitle, "", C.bluePale);
+              statBox(slide, panelX2 + 0.22, panelY + 0.62, (panelW - 0.66) / 2, "Annualized Return (CAGR)", pctF(cs?.annualizedReturn), C.white, C.navy);
               statBox(slide, panelX2 + 0.22 + (panelW - 0.66) / 2 + 0.22, panelY + 0.62, (panelW - 0.66) / 2, "Annualized Volatility", pctF(cs?.annualizedVolatility), C.white, C.navy);
               statBox(slide, panelX2 + 0.22, panelY + 1.46, (panelW - 0.66) / 2, "Max Drawdown", pctF(cs?.maxDrawdown), C.white, C.coral);
               statBox(slide, panelX2 + 0.22 + (panelW - 0.66) / 2 + 0.22, panelY + 1.46, (panelW - 0.66) / 2, "Growth of $10,000", growth10k(cs?.cumulativeReturn), C.white, C.navy);
               slide.addText(
-                `Weighted avg. fee: ${feeF(c.weightedFeePct)}  ·  approximated as ${(c.concentration || 0).toFixed(1)}% ${c.ticker} + ${(100 - (c.concentration || 0)).toFixed(1)}% ${bt.benchmarkTicker}`,
+                currentNote,
                 { x: panelX2 + 0.22, y: panelY + 2.30, w: panelW - 0.44, h: 0.5, fontSize: 7.5, color: C.muted, margin: 0, fit: "shrink" }
               );
             } else {
@@ -3017,10 +3020,10 @@ export async function generatePowerPoint({
               );
             }
 
-            // Transition summary deltas
+            // Transition summary deltas — use CAGR (consistent with volatility window)
             if (c && hasOverlap) {
-              const retDelta = (t.avgAnnualReturn?.value ?? 0) - (c.avgAnnualReturn?.value ?? 0);
-              const volDelta = (ts.annualizedVolatility ?? 0) - (cs.annualizedVolatility ?? 0);
+              const retDelta = (ts.annualizedReturn ?? 0) - (cs?.annualizedReturn ?? 0);
+              const volDelta = (ts.annualizedVolatility ?? 0) - (cs?.annualizedVolatility ?? 0);
               const feeDelta = (t.weightedFeePct ?? 0) - (c.weightedFeePct ?? 0);
               const summaryBody =
                 `• ${volDelta <= 0 ? "Lower" : "Higher"} historical volatility: ${pctF(Math.abs(volDelta))} ${volDelta <= 0 ? "reduction" : "increase"} vs. current portfolio\n` +
@@ -3035,6 +3038,215 @@ export async function generatePowerPoint({
             );
 
             footer(slide);
+
+            // ── SLIDE 4: PORTFOLIO ANALYTICS ─────────────────────────────────
+            // Growth of $10k line chart (left) + Risk/Return efficient frontier
+            // (right) — mirrors every visual shown in the modal's backtest section.
+            {
+              slide = pptx.addSlide();
+              title(
+                slide,
+                "PORTFOLIO STRATEGY",
+                "Portfolio Analytics",
+                hasBacktest && ts.startDate
+                  ? `Backtested ${ts.startDate} – ${ts.endDate} · past performance does not guarantee future results`
+                  : "Portfolio risk / return analysis"
+              );
+
+              // ── Growth of $10k SVG ───────────────────────────────────────
+              function makeGrowth10kSvg(tSeries, cSeries) {
+                if (!tSeries || tSeries.length < 2) return null;
+                // Build unified date axis
+                const dateSet = new Set(tSeries.map(p => p.date));
+                if (cSeries) cSeries.forEach(p => dateSet.add(p.date));
+                const dates = [...dateSet].sort();
+                const n = dates.length;
+                const tMap = Object.fromEntries(tSeries.map(p => [p.date, p.value]));
+                const cMap = cSeries ? Object.fromEntries(cSeries.map(p => [p.date, p.value])) : {};
+                const allVals = [...Object.values(tMap), ...Object.values(cMap)];
+                const minV = Math.min(...allVals) * 0.96;
+                const maxV = Math.max(...allVals) * 1.04;
+
+                const W = 620, H = 340;
+                const ml = 72, mr = 18, mt = 22, mb = 46;
+                const pw = W - ml - mr, ph = H - mt - mb;
+                const toX = i => ml + (i / Math.max(n - 1, 1)) * pw;
+                const toY = v => mt + ph - ((v - minV) / Math.max(maxV - minV, 1)) * ph;
+
+                // Paths
+                const tPath = dates.reduce((acc, d, i) => {
+                  if (tMap[d] == null) return acc;
+                  return acc + (acc === "" ? "M" : " L") + `${toX(i).toFixed(1)},${toY(tMap[d]).toFixed(1)}`;
+                }, "");
+                const cPath = cSeries ? dates.reduce((acc, d, i) => {
+                  if (cMap[d] == null) return acc;
+                  return acc + (acc === "" ? "M" : " L") + `${toX(i).toFixed(1)},${toY(cMap[d]).toFixed(1)}`;
+                }, "") : "";
+
+                // Gridlines — 5 nice Y values
+                const step = (maxV - minV) / 4;
+                const yTicks = Array.from({ length: 5 }, (_, i) => Math.round((minV + step * i) / 1000) * 1000);
+                const gridLines = yTicks.map(v => {
+                  const y = toY(v).toFixed(1);
+                  return `<line x1="${ml}" y1="${y}" x2="${W - mr}" y2="${y}" stroke="#E8ECF0" stroke-width="1"/>
+                    <text x="${ml - 5}" y="${(parseFloat(y) + 4).toFixed(0)}" text-anchor="end" font-size="9" fill="#6E7E9A">$${(v / 1000).toFixed(0)}k</text>`;
+                }).join("");
+
+                // X labels: first, middle, last
+                const xIdx = [0, Math.floor(n / 2), n - 1];
+                const xLabels = xIdx.map(i => `<text x="${toX(i).toFixed(1)}" y="${mt + ph + 16}" text-anchor="middle" font-size="9" fill="#6E7E9A">${dates[i]?.substring(0, 7) || ""}</text>`).join("");
+
+                // Endpoint labels
+                const tLast = tSeries[tSeries.length - 1];
+                const cLast = cSeries ? cSeries[cSeries.length - 1] : null;
+                const tEndX = toX(dates.indexOf(tLast.date));
+                const tEndY = toY(tLast.value);
+                const cEndX = cLast ? toX(dates.indexOf(cLast.date)) : 0;
+                const cEndY = cLast ? toY(cLast.value) : 0;
+
+                return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+                  <rect width="${W}" height="${H}" fill="#FFFFFF"/>
+                  ${gridLines}
+                  <line x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt + ph}" stroke="#D5DAE5" stroke-width="1"/>
+                  <line x1="${ml}" y1="${mt + ph}" x2="${W - mr}" y2="${mt + ph}" stroke="#D5DAE5" stroke-width="1"/>
+                  ${tPath ? `<path d="${tPath}" fill="none" stroke="#1E7A6E" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
+                  ${cPath ? `<path d="${cPath}" fill="none" stroke="#C94F3A" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8,4"/>` : ""}
+                  ${tLast ? `<circle cx="${tEndX.toFixed(1)}" cy="${tEndY.toFixed(1)}" r="5" fill="#1E7A6E"/>
+                    <text x="${(tEndX - 6).toFixed(1)}" y="${(tEndY - 9).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#1E7A6E">$${Math.round(tLast.value).toLocaleString("en-US")}</text>` : ""}
+                  ${cLast ? `<circle cx="${cEndX.toFixed(1)}" cy="${cEndY.toFixed(1)}" r="5" fill="#C94F3A"/>
+                    <text x="${(cEndX - 6).toFixed(1)}" y="${(cEndY + 18).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#C94F3A">$${Math.round(cLast.value).toLocaleString("en-US")}</text>` : ""}
+                  <line x1="${ml + pw - 210}" y1="14" x2="${ml + pw - 185}" y2="14" stroke="#1E7A6E" stroke-width="3"/>
+                  <text x="${ml + pw - 178}" y="18" font-size="10" fill="#1A2030">Target Portfolio</text>
+                  ${cSeries ? `<line x1="${ml + pw - 100}" y1="14" x2="${ml + pw - 75}" y2="14" stroke="#C94F3A" stroke-width="3" stroke-dasharray="8,4"/>
+                    <text x="${ml + pw - 68}" y="18" font-size="10" fill="#1A2030">Current</text>` : ""}
+                  ${xLabels}
+                  <text x="${(ml + pw / 2).toFixed(0)}" y="${H - 3}" text-anchor="middle" font-size="9" fill="#6E7E9A">Growth of $10,000 Invested</text>
+                </svg>`;
+              }
+
+              // ── Risk / Return SVG (matches modal RiskReturnChart math) ────
+              function makeRiskReturnSvg(tVol, tRet, cVol, cRet) {
+                if (tVol == null || tRet == null) return null;
+                const mv_sig = 0.01;
+                let mv_ret = 0.015;
+                let sqrtScale = (tRet - mv_ret) / Math.sqrt(tVol - mv_sig);
+                const hasCurrent = cVol != null && cRet != null;
+
+                if (hasCurrent) {
+                  const fAtCX = mv_ret + sqrtScale * Math.sqrt(Math.max(cVol - mv_sig, 0));
+                  if (cRet > fAtCX && cVol > tVol) {
+                    const r = Math.sqrt((cVol - mv_sig) / (tVol - mv_sig));
+                    if (Math.abs(1 - r) > 0.001) mv_ret = (cRet - r * tRet) / (1 - r);
+                    sqrtScale = (tRet - mv_ret) / Math.sqrt(tVol - mv_sig);
+                  }
+                }
+
+                const frontierRet = sig => { const d = sig - mv_sig; return d >= 0 ? mv_ret + sqrtScale * Math.sqrt(d) : null; };
+                const frontierSig = ret => ret <= mv_ret ? mv_sig : mv_sig + ((ret - mv_ret) / sqrtScale) ** 2;
+
+                const sigMax = Math.max(tVol, hasCurrent ? cVol : 0) * 2.6;
+                const frontierPts = Array.from({ length: 81 }, (_, i) => {
+                  const sig = mv_sig + (sigMax - mv_sig) * i / 80;
+                  const ret = frontierRet(sig);
+                  return ret != null ? { x: sig, y: ret } : null;
+                }).filter(Boolean);
+
+                const allPtsY = [tRet, hasCurrent ? cRet : tRet, mv_ret, ...frontierPts.map(p => p.y)];
+                const xa = mv_sig * 0.55, xb = sigMax * 1.03;
+                const ySpan = Math.max(...allPtsY) - Math.min(...allPtsY);
+                const ya = Math.min(...allPtsY) - ySpan * 0.12;
+                const yb = Math.max(...allPtsY) + ySpan * 0.25;
+
+                const W = 480, H = 360;
+                const ml = 52, mr = 18, mt = 20, mb = 44;
+                const pw = W - ml - mr, ph = H - mt - mb;
+                const toX = v => ml + ((v - xa) / (xb - xa)) * pw;
+                const toY = v => mt + ph - ((v - ya) / (yb - ya)) * ph;
+
+                const pathD = frontierPts.map(({ x, y }, i) => `${i === 0 ? "M" : "L"}${toX(x).toFixed(1)},${toY(y).toFixed(1)}`).join(" ");
+
+                const N = 4;
+                const gxs = Array.from({ length: N + 1 }, (_, i) => xa + (xb - xa) * i / N);
+                const gys = Array.from({ length: N + 1 }, (_, i) => ya + (yb - ya) * i / N);
+                const gridX = gxs.map(v => `<line x1="${toX(v).toFixed(1)}" y1="${mt}" x2="${toX(v).toFixed(1)}" y2="${mt + ph}" stroke="#E8ECF0" stroke-width="1"/>
+                  <text x="${toX(v).toFixed(1)}" y="${mt + ph + 14}" text-anchor="middle" font-size="9" fill="#6E7E9A">${(v * 100).toFixed(1)}%</text>`).join("");
+                const gridY = gys.map(v => `<line x1="${ml}" y1="${toY(v).toFixed(1)}" x2="${ml + pw}" y2="${toY(v).toFixed(1)}" stroke="#E8ECF0" stroke-width="1"/>
+                  <text x="${ml - 5}" y="${(parseFloat(toY(v).toFixed(1)) + 3.5).toFixed(0)}" text-anchor="end" font-size="9" fill="#6E7E9A">${(v * 100).toFixed(1)}%</text>`).join("");
+
+                // Gap annotations
+                let gaps = "";
+                if (hasCurrent) {
+                  const effSig = frontierSig(cRet);
+                  const effRet = frontierRet(cVol);
+                  const fx = toX(effSig), cy_ = toY(cRet), cx_ = toX(cVol);
+                  if (cx_ - fx > 8) {
+                    const exRisk = (cVol - effSig) * 100;
+                    gaps += `<line x1="${fx.toFixed(1)}" y1="${cy_.toFixed(1)}" x2="${(cx_ - 10).toFixed(1)}" y2="${cy_.toFixed(1)}" stroke="#C94F3A" stroke-width="1.5" stroke-dasharray="4 2.5" opacity="0.75"/>
+                      <rect x="${((fx + cx_) / 2 - 40).toFixed(1)}" y="${(cy_ - 19).toFixed(1)}" width="80" height="14" rx="3" fill="white" opacity="0.85"/>
+                      <text x="${((fx + cx_) / 2).toFixed(1)}" y="${(cy_ - 8).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#C94F3A">+${exRisk.toFixed(1)}% excess risk</text>`;
+                  }
+                  if (effRet != null && cy_ - toY(effRet) > 8) {
+                    const fRetY = toY(effRet);
+                    const foregone = (effRet - cRet) * 100;
+                    gaps += `<line x1="${cx_.toFixed(1)}" y1="${(cy_ - 10).toFixed(1)}" x2="${cx_.toFixed(1)}" y2="${(fRetY + 8).toFixed(1)}" stroke="#1E7A6E" stroke-width="1.5" stroke-dasharray="4 2.5" opacity="0.75"/>
+                      <rect x="${(cx_ + 4).toFixed(1)}" y="${((cy_ + fRetY) / 2 - 7).toFixed(1)}" width="76" height="14" rx="3" fill="white" opacity="0.85"/>
+                      <text x="${(cx_ + 42).toFixed(1)}" y="${((cy_ + fRetY) / 2 + 4).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#1E7A6E">+${foregone.toFixed(1)}% foregone</text>`;
+                  }
+                }
+
+                const tDotX = toX(tVol), tDotY = toY(tRet);
+                const cDotX = hasCurrent ? toX(cVol) : 0, cDotY = hasCurrent ? toY(cRet) : 0;
+                const tLabelY = tDotY - 12 < mt ? tDotY + 16 : tDotY - 12;
+                const cLabelY = hasCurrent ? (cDotY + 16 > mt + ph ? cDotY - 12 : cDotY + 16) : 0;
+
+                return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+                  <rect width="${W}" height="${H}" fill="#FFFFFF"/>
+                  <defs><clipPath id="rrPpt"><rect x="${ml}" y="${mt}" width="${pw}" height="${ph}"/></clipPath></defs>
+                  ${gridX}${gridY}
+                  <line x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt + ph}" stroke="#C8D0DE" stroke-width="1.5"/>
+                  <line x1="${ml}" y1="${mt + ph}" x2="${ml + pw}" y2="${mt + ph}" stroke="#C8D0DE" stroke-width="1.5"/>
+                  <path d="${pathD} L${toX(sigMax).toFixed(1)},${(mt + ph).toFixed(1)} L${toX(mv_sig).toFixed(1)},${(mt + ph).toFixed(1)} Z" fill="#FDF0ED" opacity="0.5" clip-path="url(#rrPpt)"/>
+                  <path d="${pathD}" fill="none" stroke="#1A2744" stroke-width="2.2" opacity="0.75" clip-path="url(#rrPpt)"/>
+                  <circle cx="${toX(mv_sig).toFixed(1)}" cy="${toY(mv_ret).toFixed(1)}" r="3.5" fill="#1A2744" opacity="0.5"/>
+                  <text x="${(toX(mv_sig) + 6).toFixed(1)}" y="${(toY(mv_ret) + 4).toFixed(1)}" font-size="8" fill="#6b7a99" font-style="italic">Efficient Frontier</text>
+                  ${gaps}
+                  <circle cx="${tDotX.toFixed(1)}" cy="${tDotY.toFixed(1)}" r="7" fill="#1E7A6E"/>
+                  <text x="${(tDotX + 11).toFixed(1)}" y="${tLabelY.toFixed(1)}" font-size="9.5" font-weight="700" fill="#1E7A6E">Target  ${(tRet * 100).toFixed(1)}% / ${(tVol * 100).toFixed(1)}% vol</text>
+                  ${hasCurrent ? `<circle cx="${cDotX.toFixed(1)}" cy="${cDotY.toFixed(1)}" r="7" fill="#C94F3A"/>
+                    <text x="${(cDotX + 11).toFixed(1)}" y="${cLabelY.toFixed(1)}" font-size="9.5" font-weight="700" fill="#C94F3A">Current  ${(cRet * 100).toFixed(1)}% / ${(cVol * 100).toFixed(1)}% vol</text>` : ""}
+                  <text x="${(ml + pw / 2).toFixed(0)}" y="${H - 4}" text-anchor="middle" font-size="9.5" font-weight="600" fill="#6b7a99">Risk — Annualized Volatility</text>
+                  <text transform="rotate(-90 11 ${(mt + ph / 2).toFixed(0)})" x="11" y="${(mt + ph / 2).toFixed(0)}" text-anchor="middle" font-size="9.5" font-weight="600" fill="#6b7a99">Return — CAGR</text>
+                </svg>`;
+              }
+
+              const growthSvg = makeGrowth10kSvg(ts.growthSeries, cs?.growthSeries);
+              const rrSvg = makeRiskReturnSvg(ts.annualizedVolatility, ts.annualizedReturn, cs?.annualizedVolatility, cs?.annualizedReturn);
+
+              if (growthSvg) addSvg(slide, growthSvg, 0.65, 1.88, 7.2, 4.3);
+              if (rrSvg)    addSvg(slide, rrSvg,     8.1, 1.88, 5.0, 3.8);
+
+              // Section labels
+              slide.addText("GROWTH OF $10,000", { x: 0.65, y: 1.70, w: 4.0, h: 0.16, fontSize: 7, bold: true, color: C.blue, charSpace: 1.2, margin: 0 });
+              slide.addText("RISK / RETURN  ·  EFFICIENT FRONTIER", { x: 8.1, y: 1.70, w: 5.0, h: 0.16, fontSize: 7, bold: true, color: C.blue, charSpace: 1.2, margin: 0 });
+
+              // Key-stat strip above charts (pulled from same window as charts)
+              const statY = 6.24;
+              const nStats = c ? 4 : 2;
+              const statW = 11.6 / nStats;
+              statBox(slide, 0.65,                  statY, statW - 0.15, "Target CAGR",         pctF(ts.annualizedReturn),       C.tealPale,  C.teal);
+              statBox(slide, 0.65 + statW,           statY, statW - 0.15, "Target Max Drawdown", pctF(ts.maxDrawdown),            C.white,     C.coral);
+              if (c) {
+                statBox(slide, 0.65 + statW * 2,     statY, statW - 0.15, "Current CAGR",        pctF(cs?.annualizedReturn),      C.white,     C.navy);
+                statBox(slide, 0.65 + statW * 3,     statY, statW - 0.15, "Current Max Drawdown",pctF(cs?.maxDrawdown),           C.coralPale, C.coral);
+              }
+
+              slide.addText(
+                "Based on real historical monthly prices. Efficient frontier is a theoretical illustration only — not derived from mean-variance optimization. Past performance does not guarantee future results.",
+                { x: 0.65, y: 6.88, w: 11.6, h: 0.18, fontSize: 6.5, italic: true, color: C.muted, margin: 0, align: "center" }
+              );
+
+              footer(slide);
+            }
           }
         }
       }

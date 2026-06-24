@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { fmtM, fmtK, fmtDollar } from "./formatters";
 import { recomputeReviewedData } from "./proposalUpgrades";
 import { getAllFunds, getSubGroupTotals } from "./portfolioData";
@@ -203,8 +203,8 @@ function Card({ title, accent, children }) {
 
 function Section({ title, children }) {
   return (
-    <div style={{ marginBottom: 28 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: "2px solid var(--gold-light)", paddingBottom: 6, marginBottom: 14 }}>
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#9bacc8", textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: "1px solid #E8ECF0", paddingBottom: 5, marginBottom: 12 }}>
         {title}
       </div>
       {children}
@@ -246,14 +246,31 @@ function RiskReturnChart({ points }) {
   const current = valid[1] || null;
 
   // ── Efficient frontier ───────────────────────────────────────────────────
-  // Use a square-root curve: μ(σ) = mv_ret + scale·√(σ − mv_sig)
-  // This produces the classic Investopedia shape — steeply rising on the left,
-  // visibly flattening to the right — unlike a hyperbola which becomes linear.
-  // Anchored so the curve passes exactly through the Target point.
-  const mv_sig = target.x * 0.28;          // min-variance vol (~28% of target's)
-  const mv_ret = target.y * 0.30;          // min-variance return (~30% of target's)
-  // scale from target: target.y = mv_ret + scale·√(target.x − mv_sig)
-  const sqrtScale = (target.y - mv_ret) / Math.sqrt(target.x - mv_sig);
+  // Square-root curve: μ(σ) = mv_ret + scale·√(σ − mv_sig)
+  // Minimum-variance anchor: fixed at 1% vol / 1.5% return (≈ money-market).
+  // If the current point lies ABOVE a frontier anchored only to target (which
+  // can happen when a concentrated stock like NVDA has had extraordinary recent
+  // returns), we fit the curve through BOTH the target and current points so
+  // the chart stays geometrically consistent.
+  const mv_sig = 0.01;   // ~1% vol for minimum-variance (T-bills / money market)
+  const mv_ret_base = 0.015; // ~1.5% return at minimum variance
+
+  let mv_ret = mv_ret_base;
+  let sqrtScale = (target.y - mv_ret) / Math.sqrt(target.x - mv_sig);
+
+  // Check if current would plot above the target-anchored frontier.
+  if (current) {
+    const frontierAtCurrentX = mv_ret + sqrtScale * Math.sqrt(Math.max(current.x - mv_sig, 0));
+    if (current.y > frontierAtCurrentX && current.x > target.x) {
+      // Fit frontier through both (target.x, target.y) and (current.x, current.y).
+      // Solve: ty = mv_ret + s·√(tx−mv_sig) and cy = mv_ret + s·√(cx−mv_sig)
+      const r = Math.sqrt((current.x - mv_sig) / (target.x - mv_sig));
+      if (Math.abs(1 - r) > 0.001) {
+        mv_ret = (current.y - r * target.y) / (1 - r);
+      }
+      sqrtScale = (target.y - mv_ret) / Math.sqrt(target.x - mv_sig);
+    }
+  }
 
   // μ at a given σ (returns null left of the minimum-variance point)
   const frontierRet = sig => {
@@ -565,6 +582,8 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
   onConfirm, onBack }) {
   const [local, setLocal]           = useState(() => ({ ...data }));
   const [page, setPage]             = useState(1);
+  const overlayRef                  = useRef(null);
+  function goToPage(n) { setPage(n); overlayRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }
   const hasStrategies = selectedStrategies?.crt || selectedStrategies?.harvesting || selectedStrategies?.collar;
   const TOTAL_PAGES = 3;
   const [priceStatus, setPriceStatus] = useState(
@@ -675,7 +694,7 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
   const ep = { localData: d, onChange: handleChange }; // shorthand for editable row props
 
   return (
-    <div style={{
+    <div ref={overlayRef} style={{
       position: "fixed", inset: 0, zIndex: 1000,
       background: "rgba(15,23,42,0.55)", backdropFilter: "blur(6px)",
       display: "flex", alignItems: "flex-start", justifyContent: "center",
@@ -735,7 +754,7 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
             ].map(({ n, label }) => (
               <button
                 key={n}
-                onClick={() => setPage(n)}
+                onClick={() => goToPage(n)}
                 style={{
                   background: page === n ? "rgba(255,255,255,0.15)" : "transparent",
                   border: page === n ? "1.5px solid rgba(255,255,255,0.4)" : "1.5px solid rgba(255,255,255,0.12)",
@@ -799,30 +818,43 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
                 <Row label="State Tax Rate (%)"     value={`${(d.stateTaxRate||0).toFixed(1)}%`}    field="stateTaxRate"   highlight="var(--gold)" {...ep} />
                 <Row label="Combined Rate (%)"      value={`${d.totalTaxRate || d.taxRate || 0}%`}  highlight="var(--coral)" />
                 <Row label="Cost Basis (%)"         value={`${d.costBasisPct || 0}%`}              field="costBasisPct"   highlight="var(--gold)" {...ep} />
-                <Row label="Cost Basis ($M)"        value={fmtM(d.costBasis)} />
                 <Row label="Embedded Gain ($M)"     value={fmtM(d.embeddedGain)}                   highlight="#E67E22" />
                 <Row label="Immediate Tax Liability" value={fmtM(d.immediateTax)}                  highlight="var(--coral)" />
-                <Row label="40% Drawdown Exposure"  value={fmtM(d.drawdown40Impact)} />
               </Card>
             </div>
           </Section>
 
-          {/* 2. Concentration visuals */}
+          {/* 2. Concentration visuals — only shown for concentrated stock clients */}
+          {hasStrategies && (
           <Section title="Concentration — Before vs. After">
-            <div style={{ display: "flex", gap: 24, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
-              <DonutChart value={d.stockPosition||0} total={d.investableAssets||1}
-                color="var(--coral)" label="Before" sub="Current" />
-              <div style={{ fontSize: 20, color: "var(--gold)", fontWeight: 700 }}>→</div>
-              {selectedStrategies?.crt && (
-                <DonutChart value={(d.stockPosition||0)-crtAmt} total={(d.investableAssets||1)-crtAmt}
-                  color="var(--gold)" label="After CRT" sub={`${(d.afterCrtConcentration||0).toFixed(1)}%`} />
-              )}
-              {(selectedStrategies?.harvesting || selectedStrategies?.collar) && (
-                <DonutChart value={remStock+collarAmt} total={newInv||1}
-                  color="var(--blue)" label="Final (all strategies)" sub={`${newConc.toFixed(1)}%`} />
-              )}
-            </div>
+            {(() => {
+              const afterTLHStock = (d.stockPosition||0) - crtAmt - sleeveAmt;
+              const afterTLHTotal = (d.investableAssets||1) - crtAmt;
+              const afterTLHConc  = afterTLHTotal > 0 ? (afterTLHStock / afterTLHTotal * 100) : 0;
+              return (
+                <div style={{ display: "flex", gap: 20, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
+                  <DonutChart value={d.stockPosition||0} total={d.investableAssets||1}
+                    color="var(--coral)" label="Before" sub="Current" />
+                  {selectedStrategies?.crt && <>
+                    <div style={{ fontSize: 18, color: "#9bacc8", fontWeight: 700 }}>→</div>
+                    <DonutChart value={(d.stockPosition||0)-crtAmt} total={(d.investableAssets||1)-crtAmt}
+                      color="var(--gold)" label="After CRT" sub={`${(d.afterCrtConcentration||0).toFixed(1)}%`} />
+                  </>}
+                  {selectedStrategies?.harvesting && <>
+                    <div style={{ fontSize: 18, color: "#9bacc8", fontWeight: 700 }}>→</div>
+                    <DonutChart value={afterTLHStock} total={afterTLHTotal}
+                      color="var(--teal)" label="After TLH" sub={`${afterTLHConc.toFixed(1)}%`} />
+                  </>}
+                  {selectedStrategies?.collar && <>
+                    <div style={{ fontSize: 18, color: "#9bacc8", fontWeight: 700 }}>→</div>
+                    <DonutChart value={remStock+collarAmt} total={newInv||1}
+                      color="var(--blue)" label="After Collar" sub={`${newConc.toFixed(1)}%`} />
+                  </>}
+                </div>
+              );
+            })()}
           </Section>
+          )}
 
           </>}
 
@@ -867,92 +899,44 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
 
                 return (
                   <Card title="CRT Investment Portfolio" accent="var(--gold)" style={{ marginTop: 14 }}>
-                    {/* Explanation */}
-                    <div style={{ fontSize: 11, color: "#6b7a99", marginBottom: 14, lineHeight: 1.6, padding: "10px 12px", background: "#FFFBF0", border: "1px solid #F5DFA0", borderRadius: 8 }}>
-                      <strong style={{ color: "var(--navy)" }}>How it works:</strong> Upon contribution, the {d.ticker || "concentrated stock"} shares are transferred into the CRT. The trustee then sells them <em>tax-free inside the trust</em> — no capital gains recognized at sale. The full proceeds (~{fmtM(d.crtAllocation)}) are immediately reinvested in the diversified portfolio below, generating income paid to the client for the trust term. At termination, the remainder passes to the designated charity.
+                    {/* Allocation bar */}
+                    <div style={{ display: "flex", borderRadius: 5, overflow: "hidden", height: 16, marginBottom: 8 }}>
+                      {Object.entries(groups).filter(([, v]) => v > 0).map(([g, v]) => (
+                        <div key={g} style={{ width: `${v}%`, background: groupColors[g] || "#9BACC8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, color: "#fff", overflow: "hidden" }}>
+                          {v >= 10 ? `${g} ${v.toFixed(0)}%` : v >= 5 ? `${v.toFixed(0)}%` : ""}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginBottom: 10 }}>
+                      {Object.entries(groups).filter(([, v]) => v > 0).map(([g, v]) => (
+                        <div key={g} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#6b7a99" }}>
+                          <div style={{ width: 7, height: 7, borderRadius: 2, background: groupColors[g] || "#9BACC8", flexShrink: 0 }} />
+                          {g} {v.toFixed(0)}%
+                        </div>
+                      ))}
                     </div>
 
-                    {/* Asset-class summary bar */}
-                    <div style={{ marginBottom: 14 }}>
-                      <div style={{ fontSize: 10, color: "#9bacc8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
-                        Asset Allocation
+                    {/* Compact fund table */}
+                    <div style={{ border: "1px solid #EEF0F5", borderRadius: 7, overflow: "hidden" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 100px 40px 64px", padding: "5px 10px", background: "#F5F7FB", borderBottom: "1px solid #EEF0F5" }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: "#9bacc8", textTransform: "uppercase" }}>Fund</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: "#9bacc8", textTransform: "uppercase" }}>Asset Class</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: "#9bacc8", textTransform: "uppercase", textAlign: "right" }}>Alloc</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: "#9bacc8", textTransform: "uppercase", textAlign: "right" }}>Value</span>
                       </div>
-                      <div style={{ display: "flex", borderRadius: 6, overflow: "hidden", height: 22 }}>
-                        {Object.entries(groups).filter(([, v]) => v > 0).map(([g, v]) => (
-                          <div key={g} style={{
-                            width: `${v}%`, background: groupColors[g] || "#9BACC8",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 9, fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden",
-                          }}>
-                            {v >= 8 ? `${g} ${v.toFixed(0)}%` : v >= 4 ? `${v.toFixed(0)}%` : ""}
-                          </div>
-                        ))}
+                      {crtFunds.map((f, i) => (
+                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 100px 40px 64px", padding: "5px 10px", borderBottom: "1px solid #F3F4F7", background: i % 2 === 0 ? "#fff" : "#FAFBFD", alignItems: "center" }}>
+                          <span style={{ fontSize: 11, fontWeight: 500, color: "var(--navy)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
+                          <span style={{ fontSize: 10, color: "#6b7a99" }}>{f.assetClass || "—"}</span>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--navy)", textAlign: "right" }}>{f.alloc.toFixed(0)}%</span>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--teal)", textAlign: "right" }}>{fmtM((d.crtAllocation || 0) * (f.alloc / 100))}</span>
+                        </div>
+                      ))}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 100px 40px 64px", padding: "5px 10px", background: "#F0F4FF", borderTop: "1px solid #DDE3F5" }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--navy)", gridColumn: "1 / 3" }}>Total</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--navy)", textAlign: "right" }}>100%</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--teal)", textAlign: "right" }}>{fmtM(d.crtAllocation || 0)}</span>
                       </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 6 }}>
-                        {Object.entries(groups).filter(([, v]) => v > 0).map(([g, v]) => (
-                          <div key={g} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#6b7a99" }}>
-                            <div style={{ width: 8, height: 8, borderRadius: 2, background: groupColors[g] || "#9BACC8", flexShrink: 0 }} />
-                            {g} — {v.toFixed(1)}%
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Fund-level table */}
-                    <div style={{ fontSize: 10, color: "#9bacc8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
-                      Holdings
-                    </div>
-                    <div style={{ border: "1px solid #EEF0F5", borderRadius: 8, overflow: "hidden" }}>
-                      {/* Header */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 8, padding: "7px 12px", background: "#F5F7FB", borderBottom: "1px solid #EEF0F5" }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: "#9bacc8", textTransform: "uppercase" }}>Fund / Manager</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: "#9bacc8", textTransform: "uppercase", textAlign: "right" }}>Alloc</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: "#9bacc8", textTransform: "uppercase", textAlign: "right", minWidth: 70 }}>Est. Value</span>
-                      </div>
-                      {/* Rows grouped by category */}
-                      {["Equity", "Fixed Income", "Alternatives", "Cash"].map(grp => {
-                        const rows = crtFunds.filter(f => f.group === grp);
-                        if (rows.length === 0) return null;
-                        return (
-                          <div key={grp}>
-                            <div style={{ padding: "5px 12px", background: "#FAFBFD", borderBottom: "1px solid #EEF0F5" }}>
-                              <span style={{ fontSize: 10, fontWeight: 700, color: groupColors[grp] || "#9bacc8", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                                {grp}
-                              </span>
-                            </div>
-                            {rows.map((f, i) => {
-                              const estVal = (d.crtAllocation || 0) * (f.alloc / 100);
-                              return (
-                                <div key={i} style={{
-                                  display: "grid", gridTemplateColumns: "1fr auto auto", gap: 8,
-                                  padding: "7px 12px", borderBottom: "1px solid #EEF0F5",
-                                  background: i % 2 === 0 ? "#fff" : "#FAFBFD",
-                                }}>
-                                  <div>
-                                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--navy)" }}>{f.name}</div>
-                                    <div style={{ fontSize: 10, color: "#9bacc8" }}>{f.assetClass}</div>
-                                  </div>
-                                  <div style={{ textAlign: "right", fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>
-                                    {f.alloc.toFixed(1)}%
-                                  </div>
-                                  <div style={{ textAlign: "right", fontSize: 12, fontWeight: 600, color: "var(--teal)", minWidth: 70 }}>
-                                    {fmtM(estVal)}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
-                      {/* Total */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 8, padding: "8px 12px", background: "#F0F4FF", borderTop: "1px solid #DDE3F5" }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)" }}>Total CRT Assets</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)", textAlign: "right" }}>100%</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--teal)", textAlign: "right", minWidth: 70 }}>{fmtM(d.crtAllocation || 0)}</span>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 10, color: "#9bacc8", marginTop: 8 }}>
-                      Allocation mirrors the client's recommended {portfolioLabel || "target"} portfolio at {riskLabel || "the selected"} risk profile. Exact holdings subject to trustee discretion and available investment minimums.
                     </div>
                   </Card>
                 );
@@ -976,34 +960,17 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
                   <Row label="Total Annual Savings" value={fmtK(d.taxSavings)}          highlight="var(--teal)" />
                 </Card>
               </div>
-              {/* Provider selector */}
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#9bacc8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
-                  Select Provider
-                </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {HARVESTING_PROVIDERS.map(p => (
-                    <button key={p.key} onClick={() => setHarvestingProvider(p.key)} style={{
-                      padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600,
-                      border: harvestingProvider === p.key ? "2px solid var(--gold)" : "1.5px solid #E0E5EF",
-                      background: harvestingProvider === p.key ? "#FEF9EE" : "#fff",
-                      color: harvestingProvider === p.key ? "var(--gold)" : "#6b7a99",
-                      transition: "all 0.15s",
-                    }}>
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-                {(() => {
-                  const p = HARVESTING_PROVIDERS.find(p => p.key === harvestingProvider);
-                  return p ? (
-                    <div style={{ marginTop: 8, padding: "10px 14px", background: "#FFFBF0", border: "1px solid #F5DFA0", borderRadius: 8 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)", marginBottom: 3 }}>{p.label} <span style={{ fontWeight: 400, color: "#9bacc8" }}>— {p.sub}</span></div>
-                      <div style={{ fontSize: 11, color: "#6b7a99" }}>{p.detail}</div>
-                    </div>
-                  ) : null;
-                })()}
+              {/* Provider */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#9bacc8", textTransform: "uppercase", letterSpacing: "0.06em", flexShrink: 0 }}>Provider</span>
+                <select value={harvestingProvider} onChange={e => setHarvestingProvider(e.target.value)} style={{ fontSize: 12, border: "1.5px solid #E0E5EF", borderRadius: 7, padding: "5px 10px", color: "var(--navy)", background: "#fff", cursor: "pointer", flex: 1, fontFamily: "inherit" }}>
+                  {HARVESTING_PROVIDERS.map(p => <option key={p.key} value={p.key}>{p.label} — {p.sub}</option>)}
+                </select>
               </div>
+              {(() => {
+                const p = HARVESTING_PROVIDERS.find(p => p.key === harvestingProvider);
+                return p ? <div style={{ fontSize: 11, color: "#6b7a99", marginTop: 5, paddingLeft: 2 }}>{p.detail}</div> : null;
+              })()}
             </Section>
           )}
 
@@ -1032,34 +999,17 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
                   <Row label="Protected Range"      value={`${fmtM(d.putFloorValue)} – ${fmtM(d.callCapValue)}`} />
                 </Card>
               </div>
-              {/* Provider selector */}
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#9bacc8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
-                  Select Provider
-                </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {COLLAR_PROVIDERS.map(p => (
-                    <button key={p.key} onClick={() => setCollarProvider(p.key)} style={{
-                      padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600,
-                      border: collarProvider === p.key ? "2px solid var(--blue)" : "1.5px solid #E0E5EF",
-                      background: collarProvider === p.key ? "#EEF4FF" : "#fff",
-                      color: collarProvider === p.key ? "var(--blue)" : "#6b7a99",
-                      transition: "all 0.15s",
-                    }}>
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-                {(() => {
-                  const p = COLLAR_PROVIDERS.find(p => p.key === collarProvider);
-                  return p ? (
-                    <div style={{ marginTop: 8, padding: "10px 14px", background: "#EEF4FF", border: "1px solid #C0D4F5", borderRadius: 8 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)", marginBottom: 3 }}>{p.label} <span style={{ fontWeight: 400, color: "#9bacc8" }}>— {p.sub}</span></div>
-                      <div style={{ fontSize: 11, color: "#6b7a99" }}>{p.detail}</div>
-                    </div>
-                  ) : null;
-                })()}
+              {/* Provider */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#9bacc8", textTransform: "uppercase", letterSpacing: "0.06em", flexShrink: 0 }}>Provider</span>
+                <select value={collarProvider} onChange={e => setCollarProvider(e.target.value)} style={{ fontSize: 12, border: "1.5px solid #E0E5EF", borderRadius: 7, padding: "5px 10px", color: "var(--navy)", background: "#fff", cursor: "pointer", flex: 1, fontFamily: "inherit" }}>
+                  {COLLAR_PROVIDERS.map(p => <option key={p.key} value={p.key}>{p.label} — {p.sub}</option>)}
+                </select>
               </div>
+              {(() => {
+                const p = COLLAR_PROVIDERS.find(p => p.key === collarProvider);
+                return p ? <div style={{ fontSize: 11, color: "#6b7a99", marginTop: 5, paddingLeft: 2 }}>{p.detail}</div> : null;
+              })()}
             </Section>
           )}
 
@@ -1444,15 +1394,13 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
 
                     <div style={{ display: "grid", gridTemplateColumns: c ? "1fr 1fr" : "1fr", gap: 14 }}>
                       <Card title="Recommended (Target) Portfolio" accent="var(--navy)">
-                        <Row label="Annualized Return (10-Yr Avg)" value={pct(t.avgAnnualReturn?.value)} highlight="var(--teal)" />
+                        <Row label="Annualized Return (CAGR)" value={pct(ts.annualizedReturn)} highlight="var(--teal)" />
                         <Row label="Annualized Volatility"    value={pct(ts.annualizedVolatility)} />
                         <Row label="Max Drawdown"              value={ts.maxDrawdown != null ? `${pct(ts.maxDrawdown)}${drawdownDollar(ts.maxDrawdown)}` : "—"} />
                         <Row label="Weighted Avg. Fee"          value={fee(t.weightedFeePct)} />
-                        {t.avgAnnualReturn && (t.avgAnnualReturn.minYearsUsed < 10 || t.avgAnnualReturn.coveragePct < 100) && (
+                        {ts.startDate && (
                           <div style={{ fontSize: 10, color: "#9bacc8", marginTop: 8 }}>
-                            Average of each holding's trailing annual returns
-                            {t.avgAnnualReturn.minYearsUsed < 10 ? ` (as little as ${t.avgAnnualReturn.minYearsUsed} yr${t.avgAnnualReturn.minYearsUsed === 1 ? "" : "s"} of history for some holdings)` : ""}
-                            {t.avgAnnualReturn.coveragePct < 100 ? `, covering ${t.avgAnnualReturn.coveragePct.toFixed(0)}% of the model by allocation` : ""}.
+                            CAGR over backtest window ({ts.startDate} – {ts.endDate}, {ts.months} months).
                           </div>
                         )}
                         {t.coveragePct < 100 && (
@@ -1464,18 +1412,21 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
                       </Card>
 
                       {c && (
-                        <Card title="Current Portfolio (approximate)" accent="#6b7a99">
-                          <Row label="Annualized Return (10-Yr Avg)" value={pct(c.avgAnnualReturn?.value)} />
+                        <Card title={c.fromUploadedHoldings ? "Current Portfolio" : "Current Portfolio (approximate)"} accent="#6b7a99">
+                          <Row label="Annualized Return (CAGR)" value={pct(cs?.annualizedReturn)} />
                           <Row label="Annualized Volatility"    value={pct(cs?.annualizedVolatility)} />
                           <Row label="Max Drawdown"              value={cs?.maxDrawdown != null ? `${pct(cs.maxDrawdown)}${drawdownDollar(cs.maxDrawdown)}` : "—"} />
                           <Row label="Weighted Avg. Fee"          value={fee(c.weightedFeePct)} />
-                          {c.avgAnnualReturn && c.avgAnnualReturn.minYearsUsed < 10 && (
+                          {cs?.startDate && (
                             <div style={{ fontSize: 10, color: "#9bacc8", marginTop: 8 }}>
-                              Average of trailing annual returns (as little as {c.avgAnnualReturn.minYearsUsed} yr{c.avgAnnualReturn.minYearsUsed === 1 ? "" : "s"} of history available).
+                              CAGR over backtest window ({cs.startDate} – {cs.endDate}, {cs.months} months).
                             </div>
                           )}
                           <div style={{ fontSize: 10, color: "#9bacc8", marginTop: 8 }}>
-                            Approximated as {(c.concentration||0).toFixed(1)}% {c.ticker} + {(100 - (c.concentration||0)).toFixed(1)}% {backtestResult.benchmarkTicker} (a diversified benchmark standing in for the untracked remainder), based on the concentrated position noted for this client. Not a full reconstruction of the actual current portfolio.
+                            {c.fromUploadedHoldings
+                              ? `Built from ${c.holdingCount} holdings extracted from the uploaded portfolio statement.`
+                              : `Approximated as ${(c.concentration||0).toFixed(1)}% ${c.ticker} + ${(100-(c.concentration||0)).toFixed(1)}% ${backtestResult.benchmarkTicker} (diversified benchmark for the remainder). Upload a portfolio statement to use actual holdings.`
+                            }
                           </div>
                         </Card>
                       )}
@@ -1488,8 +1439,8 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
                     )}
 
                     {c && hasOverlap && (() => {
-                      const retDelta = (t.avgAnnualReturn?.value ?? 0) - (c.avgAnnualReturn?.value ?? 0);
-                      const volDelta = (ts.annualizedVolatility ?? 0) - (cs.annualizedVolatility ?? 0);
+                      const retDelta = (ts.annualizedReturn ?? 0) - (cs?.annualizedReturn ?? 0);
+                      const volDelta = (ts.annualizedVolatility ?? 0) - (cs?.annualizedVolatility ?? 0);
                       const feeDelta = (t.weightedFeePct ?? 0) - (c.weightedFeePct ?? 0);
                       return (
                         <Card title="Transition Summary" accent="var(--gold)">
@@ -1508,19 +1459,19 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
                       );
                     })()}
 
-                    {/* Risk/Return chart — X=volatility, Y=return (standard orientation) */}
-                    {t.avgAnnualReturn?.value != null && ts.annualizedVolatility != null && (
+                    {/* Risk/Return chart — X=volatility, Y=CAGR (both from same summarizeReturns window) */}
+                    {ts.annualizedReturn != null && ts.annualizedVolatility != null && (
                       <RiskReturnChart points={[
                         {
                           x: ts.annualizedVolatility,   // risk on X axis
-                          y: t.avgAnnualReturn.value,   // return on Y axis
+                          y: ts.annualizedReturn,        // CAGR from same window as vol
                           color: "var(--teal)",
                           label: "Target",
                         },
-                        ...(c && c.avgAnnualReturn?.value != null && cs?.annualizedVolatility != null
+                        ...(c && cs?.annualizedReturn != null && cs?.annualizedVolatility != null
                           ? [{
                               x: cs.annualizedVolatility,
-                              y: c.avgAnnualReturn.value,
+                              y: cs.annualizedReturn,    // CAGR from same window as vol
                               color: "var(--coral)",
                               label: "Current",
                             }]
@@ -1539,7 +1490,8 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
                       borderTop: "1px solid #EEF0F5", fontStyle: "italic",
                     }}>
                       Based on real historical monthly prices. For illustrative purposes only — past performance does not guarantee future results.
-                      Efficient frontier curve is a theoretical illustration anchored to the target portfolio; it is not derived from a full mean-variance optimization.
+                      Chart plots annualized CAGR vs. annualized volatility over the same historical window for each portfolio.
+                      Efficient frontier curve is a theoretical illustration; it is not derived from a full mean-variance optimization.
                     </div>
                   </>
                 );
@@ -1561,14 +1513,14 @@ export default function ProposalPreviewModal({ data, name, selectedStrategies,
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               {page > 1 && (
-                <button className="ppm-btn ppm-btn-secondary" onClick={() => setPage(p => p - 1)} style={{
+                <button className="ppm-btn ppm-btn-secondary" onClick={() => goToPage(page - 1)} style={{
                   background: "#fff", border: "1.5px solid #D0D6E0",
                   color: "var(--navy)", borderRadius: 10, padding: "11px 22px",
                   cursor: "pointer", fontSize: 13, fontWeight: 600,
                 }}>← Previous</button>
               )}
               {page < TOTAL_PAGES ? (
-                <button className="ppm-btn ppm-btn-dark" onClick={() => setPage(p => p + 1)} style={{
+                <button className="ppm-btn ppm-btn-dark" onClick={() => goToPage(page + 1)} style={{
                   background: "var(--navy)", border: "none",
                   color: "#fff", borderRadius: 10, padding: "11px 24px",
                   cursor: "pointer", fontSize: 13, fontWeight: 700,

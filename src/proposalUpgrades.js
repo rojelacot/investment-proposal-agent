@@ -50,8 +50,8 @@ export function recomputeReviewedData(input) {
       ? Math.min(Math.max((data.stockPosition / data.investableAssets) * 100, 0), 100)
       : 0;
 
-  // Use stored pct if available; default to 30
-  data.crtPct        = toNumber(data.crtPct,        30);
+  // Use stored pct if available; default to 15 (range is 10–20% based on charitable intent)
+  data.crtPct        = toNumber(data.crtPct,        15);
   data.harvestingPct = toNumber(data.harvestingPct, 30);
   data.collarPct     = toNumber(data.collarPct,     30);
 
