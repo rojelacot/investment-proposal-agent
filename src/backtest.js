@@ -219,17 +219,20 @@ export function weightedAverageAnnualReturn(weights, returnsByTicker, maxYears =
   };
 }
 
-/** Summary stats for a monthly return series: growth of a hypothetical $10,000,
- *  CAGR ("annualizedReturn"), annualized volatility (stdev of monthly returns,
- *  scaled by sqrt(12)), and max drawdown. Returns nulls when there isn't enough
- *  overlapping history to compute a meaningful number — callers should treat
- *  null as "not enough data," never as zero. */
-export function summarizeReturns(monthlyReturns) {
+/** Summary stats for a monthly return series: cumulative growth, CAGR
+ *  ("annualizedReturn"), annualized volatility (stdev of monthly returns scaled
+ *  by sqrt(12)), max drawdown, and the risk-adjusted Sharpe & Sortino ratios.
+ *  `riskFreeRate` is an ANNUAL decimal (e.g. 0.04 = 4%). Returns nulls when
+ *  there isn't enough overlapping history to compute a meaningful number —
+ *  callers should treat null as "not enough data," never as zero. */
+export function summarizeReturns(monthlyReturns, riskFreeRate = 0.04) {
   if (!monthlyReturns || monthlyReturns.length === 0) {
     return {
       months: 0, startDate: null, endDate: null,
       cumulativeReturn: null, annualizedReturn: null,
-      annualizedVolatility: null, maxDrawdown: null, growthSeries: [],
+      annualizedVolatility: null, maxDrawdown: null,
+      sharpeRatio: null, sortinoRatio: null, downsideDeviation: null,
+      riskFreeRate, growthSeries: [],
     };
   }
 
@@ -254,6 +257,23 @@ export function summarizeReturns(monthlyReturns) {
     monthlyReturns.reduce((s, { return: r }) => s + (r - mean) ** 2, 0) / Math.max(months - 1, 1);
   const annualizedVolatility = Math.sqrt(variance) * Math.sqrt(12);
 
+  // Risk-adjusted return. Sharpe uses total volatility; Sortino penalizes only
+  // downside deviation (monthly returns below the risk-free hurdle), which is
+  // the more relevant measure for a client worried about losses, not upside.
+  const monthlyRf = riskFreeRate / 12;
+  const excessAnnual = annualizedReturn == null ? null : annualizedReturn - riskFreeRate;
+  const sharpeRatio =
+    excessAnnual != null && annualizedVolatility > 0 ? excessAnnual / annualizedVolatility : null;
+
+  const downsideVar =
+    monthlyReturns.reduce((s, { return: r }) => {
+      const shortfall = Math.min(r - monthlyRf, 0);
+      return s + shortfall * shortfall;
+    }, 0) / months;
+  const downsideDeviation = Math.sqrt(downsideVar) * Math.sqrt(12);
+  const sortinoRatio =
+    excessAnnual != null && downsideDeviation > 0 ? excessAnnual / downsideDeviation : null;
+
   return {
     months,
     startDate: monthlyReturns[0].date,
@@ -262,6 +282,10 @@ export function summarizeReturns(monthlyReturns) {
     annualizedReturn,
     annualizedVolatility,
     maxDrawdown,
+    sharpeRatio,
+    sortinoRatio,
+    downsideDeviation,
+    riskFreeRate,
     growthSeries,
   };
 }
