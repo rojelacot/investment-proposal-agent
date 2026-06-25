@@ -2244,8 +2244,8 @@ export async function generatePowerPoint({
           fill: C.coralPale, color: C.coral,
         },
         {
-          title: "Combined Tax Savings",
-          body: `CRT avoided: ${fmtM(crtTaxAvoided)}  ·  Deduction benefit: ${fmtM(crtDeductionBenefit)}  ·  Harvesting: ${fmtK(harvestingBenefit)}/yr`,
+          title: "Tax Saved",
+          body: `${fmtK(scorecard.taxSaved)} total — capital-gains tax avoided via CRT plus tax-loss harvesting savings`,
           fill: C.goldPale, color: C.gold,
         },
         {
