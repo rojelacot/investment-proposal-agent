@@ -43,7 +43,7 @@ export default function App() {
   const [selectedProposalModules, setSelectedProposalModules] = useState({
     executiveSummary: true,
     clientProfileGoals: true,
-    recommendedInvestmentApproach: true,
+    recommendedInvestmentApproach: false, // opt-in: portfolio strategy + risk/allocation slides
     riskManagementOverview: false,
     goalsTimeline: false,
     liquidityNeedsReview: false,
@@ -55,10 +55,10 @@ export default function App() {
     restrictionsImplementationNotes: false,
     implementationTimeline: false,
     nextSteps: true,
-    // Analytics & projection slides (require a backtest to render).
-    feeDragAnalysis: true,
-    monteCarloProjection: true,
-    stressTestAnalysis: true,
+    // Analytics & projection slides — opt-in: only render when checked.
+    feeDragAnalysis: false,
+    monteCarloProjection: false,
+    stressTestAnalysis: false,
   });
 
   const [selectedServices, setSelectedServices] = useState({
@@ -105,7 +105,6 @@ export default function App() {
     { key: "aggressive", label: "Aggressive", mix: "100/0" },
   ];
 
-    const [includePortfolioStrategySlides, setIncludePortfolioStrategySlides] = useState(true);
 
 const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
     corePrivate: false,
@@ -1211,75 +1210,6 @@ function getSelectedPortfolioStrategyLabels() {
     return assumptions;
   }
 
-  function startNewClient() {
-    setClientName("");
-    setNotes("");
-    setStatus("");
-    setProposal(null);
-    setClarifyingQuestions([]);
-    setClarificationAnswers({});
-    setReviewData(null);
-    setQualityReport(null);
-    setClientType("Concentrated stock executive");
-    setScannedHoldings([]);
-    setSelectedStrategies({
-      crt: true,
-      harvesting: true,
-      collar: true,
-      diversification: true,
-      muniBonds: false,
-      donorAdvisedFund: false,
-      exchangeFund: false,
-      estatePlanning: false,
-    });
-    // Clear the portfolio-model / risk selections too, so a new client starts
-    // from a truly blank slate rather than inheriting the prior client's picks.
-    setSelectedPortfolioStrategies({
-      corePrivate: false,
-      selectLiquidity: false,
-      traditional: false,
-      focusedB: false,
-      selectLiquidityUsBias: false,
-      traditionalUsBias: false,
-    });
-    setSelectedRiskProfile("");
-    setUseRecommendedApproach(false);
-  }
-
-  function loadSampleClient(type) {
-    const samples = {
-      executive: {
-        name: "Mercer Household",
-        clientType: "Concentrated stock executive",
-        notes:
-          "Mercer Household has a total net worth of $24M and investable assets of $15M. The client has a concentrated NVDA position of $9M with a cost basis of 12%. The client wants to diversify over time, reduce single-stock risk, manage taxes, maintain growth exposure, and explore charitable planning. Risk tolerance is growth-oriented but the client wants downside protection. Time horizon is 10+ years. Combined tax rate is 37.1%. Current share price is $120. Restrictions: no single position above 5% after transition.",
-      },
-      businessOwner: {
-        name: "Rossi Household",
-        clientType: "Business owner after liquidity event",
-        notes:
-          "Rossi Household recently sold a business and has net worth of $38M with investable assets of $22M. The portfolio includes a $7M concentrated AAPL position with low cost basis of 18%. Goals include liquidity planning, tax efficiency, estate planning, charitable giving, and building a diversified long-term portfolio. Risk tolerance is moderate growth. Time horizon is 15 years. Combined tax rate is 39%. Current share price is $190.",
-      },
-      retiree: {
-        name: "Henderson Household",
-        clientType: "Retiree income client",
-        notes:
-          "Henderson Household has net worth of $12M and investable assets of $8M. They hold a $3M MSFT position with cost basis of 25%. Their goals are retirement income, downside protection, tax-aware diversification, and liquidity for healthcare and family support. Risk tolerance is moderate. Time horizon is 20 years. Combined tax rate is 32%. Current share price is $420.",
-      },
-    };
-
-    const sample = samples[type];
-    setClientName(sample.name);
-    setClientType(sample.clientType);
-    setNotes(sample.notes);
-    setStatus("Sample client loaded. Click Run Agent to begin.");
-    setProposal(null);
-    setReviewData(null);
-    setQualityReport(null);
-    setClarifyingQuestions([]);
-    setClarificationAnswers({});
-  }
-
   function getCurrentStep() {
     if (proposal) return 4;
     if (reviewData) return 3;
@@ -2176,7 +2106,9 @@ function getSelectedPortfolioStrategyLabels() {
         selectedPortfolioStrategies,
         selectedRiskProfile,
         selectedServices,
-        includePortfolioStrategySlides,
+        // Portfolio strategy, risk profile/allocation, and the transition slides
+        // only render when the "Recommended Investment Approach" box is checked.
+        includePortfolioStrategySlides: selectedProposalModules.recommendedInvestmentApproach === true,
         includeConcentratedStockSlides: includeConcentratedStockSlidesPpt,
         clientType,
         strategyLabels: getSelectedStrategyLabels(),
@@ -2242,22 +2174,6 @@ function getSelectedPortfolioStrategyLabels() {
           <p className="intro">
             Paste client notes, financials, concentrated stock details, tax concerns, goals, and legacy objectives.
           </p>
-
-          <div className="client-toolbar">
-            <select
-              className="dropdown-select"
-              value=""
-              onChange={(e) => { if (e.target.value) loadSampleClient(e.target.value); }}
-            >
-              <option value="">Load sample client…</option>
-              <option value="executive">Mercer Household — Concentrated stock executive</option>
-              <option value="businessOwner">Rossi Household — Business owner after liquidity event</option>
-              <option value="retiree">Henderson Household — Retiree income client</option>
-            </select>
-            <button type="button" className="secondary-button" onClick={startNewClient}>
-              New Client
-            </button>
-          </div>
 
           <FileUploadBox onTextExtracted={addExtractedDocumentText} />
 
