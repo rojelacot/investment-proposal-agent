@@ -266,41 +266,36 @@ export async function generatePowerPoint({
           shadow: { type: "outer", color: "D9DEE8", opacity: 0.12, blur: 1, angle: 45, distance: 1 },
         });
 
-        slide.addShape(pptx.ShapeType.rect, {
-          x,
-          y,
-          w: 0.07,
-          h,
-          fill: { color: C.goldLight },
-          line: { color: C.goldLight },
+        // Orange banner header (matches the example deck's section banners).
+        const bh = 0.36;
+        slide.addShape(pptx.ShapeType.roundRect, {
+          x, y, w, h: bh, rectRadius: 0.08,
+          fill: { color: C.goldLight }, line: { color: C.goldLight },
         });
-
+        slide.addShape(pptx.ShapeType.rect, {
+          x, y: y + bh - 0.12, w, h: 0.12,
+          fill: { color: C.goldLight }, line: { color: C.goldLight },
+        });
         slide.addText(heading.toUpperCase(), {
-          x: x + 0.22,
-          y: y + 0.17,
-          w: w - 0.44,
-          h: 0.18,
-          fontSize: 7.2,
+          x: x + 0.14,
+          y,
+          w: w - 0.28,
+          h: bh,
+          fontSize: 8.5,
           bold: true,
-          color: C.blue,
-          charSpace: 1.1,
+          color: C.white,
+          charSpace: 0.6,
+          align: "center",
+          valign: "middle",
           margin: 0,
           fit: "shrink",
         });
 
-        slide.addShape(pptx.ShapeType.line, {
-          x: x + 0.22,
-          y: y + 0.47,
-          w: w - 0.44,
-          h: 0,
-          line: { color: C.border, width: 0.6 },
-        });
-
         slide.addText(body, {
           x: x + 0.22,
-          y: y + 0.61,
+          y: y + bh + 0.13,
           w: w - 0.44,
-          h: h - 0.76,
+          h: h - bh - 0.26,
           fontSize: 11,
           color: C.text,
           fit: "shrink",
