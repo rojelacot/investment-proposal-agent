@@ -1,4 +1,4 @@
-# Investment Proposal Agent — How It Works
+# Investment Proposal Project — How It Works
 
 ---
 
