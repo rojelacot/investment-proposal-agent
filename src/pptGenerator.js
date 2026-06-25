@@ -99,24 +99,27 @@ export async function generatePowerPoint({
       pptx.subject = "Concentrated Stock Investment Proposal";
       pptx.title = `${name} Styled Investment Proposal`;
 
+      // Beacon Pointe brand palette (sampled from the logo): slate-blue primary,
+      // orange + sage-green accents. Semantic roles preserved (gold→orange accent,
+      // teal→green positive, coral kept muted for risk callouts).
       const C = {
-        navy: "1A2744",
-        navy2: "243459",
-        gold: "B8892A",
-        goldLight: "D4A845",
-        goldPale: "F5EDDA",
-        teal: "1E7A6E",
-        tealPale: "DFF1EE",
-        coral: "C94F3A",
-        coralPale: "FBEAE7",
-        blue: "3A6BBF",
-        bluePale: "E8EEF8",
-        text: "1A2030",
-        muted: "6E7E9A",
-        border: "D5DAE5",
+        navy: "2E4A5A",      // dark slate (cover, headings)
+        navy2: "3A5A6E",     // slate panel
+        gold: "E07D1A",      // orange accent (text-weight)
+        goldLight: "F48B1F", // brand orange (bars/fills)
+        goldPale: "FCEFD9",  // pale orange
+        teal: "5E8A4E",      // brand green (positive)
+        tealPale: "EDF3E4",  // pale green
+        coral: "C0504A",     // muted brick red (risk)
+        coralPale: "F6E7E4",
+        blue: "4D738A",      // brand slate-blue (eyebrows, secondary)
+        bluePale: "E6EDF1",
+        text: "2A3440",
+        muted: "6E7E8A",
+        border: "D5DAE0",
         bg: "FFFFFF",
         white: "FFFFFF",
-        lightBar: "E8EDF5",
+        lightBar: "EAEEF2",
       };
 
       function title(slide, num, heading, subtitle = "") {
@@ -463,12 +466,12 @@ export async function generatePowerPoint({
         const grid = [0,50,100,150].map(v => {
           const y = 285 - (v / maxVal) * 235;
           return `<line x1="70" y1="${y}" x2="890" y2="${y}" stroke="#E5E8EF" stroke-width="1"/>
-                  <text x="55" y="${y+4}" text-anchor="end" font-size="12" fill="#6E7E9A">${v}%</text>`;
+                  <text x="55" y="${y+4}" text-anchor="end" font-size="12" fill="#6E7E8A">${v}%</text>`;
         }).join("");
 
         const xLabels = labels.map((l, i) => {
           const x = 70 + (i / (labels.length - 1)) * 820;
-          return `<text x="${x}" y="315" text-anchor="middle" font-size="11" fill="#6E7E9A">${l}</text>`;
+          return `<text x="${x}" y="315" text-anchor="middle" font-size="11" fill="#6E7E8A">${l}</text>`;
         }).join("");
 
         return `
@@ -478,13 +481,13 @@ export async function generatePowerPoint({
             <line x1="70" y1="285" x2="890" y2="285" stroke="#D5DAE5"/>
             <line x1="70" y1="50" x2="70" y2="285" stroke="#D5DAE5"/>
 
-            <polyline points="${longPts}" fill="none" stroke="#3A6BBF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            <polyline points="${enhPts}" fill="none" stroke="#D4A845" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="${longPts}" fill="none" stroke="#4D738A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="${enhPts}" fill="none" stroke="#F48B1F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 
-            <line x1="630" y1="25" x2="670" y2="25" stroke="#D4A845" stroke-width="4"/>
-            <text x="680" y="30" font-size="13" fill="#1A2030">130/30 Enhanced</text>
-            <line x1="630" y1="48" x2="670" y2="48" stroke="#3A6BBF" stroke-width="4"/>
-            <text x="680" y="53" font-size="13" fill="#1A2030">Long-Only</text>
+            <line x1="630" y1="25" x2="670" y2="25" stroke="#F48B1F" stroke-width="4"/>
+            <text x="680" y="30" font-size="13" fill="#2A3440">130/30 Enhanced</text>
+            <line x1="630" y1="48" x2="670" y2="48" stroke="#4D738A" stroke-width="4"/>
+            <text x="680" y="53" font-size="13" fill="#2A3440">Long-Only</text>
 
             ${xLabels}
           </svg>
@@ -527,13 +530,13 @@ export async function generatePowerPoint({
           const val = maxVal * r;
           const y = 285 - r * 235;
           return `<line x1="80" y1="${y}" x2="880" y2="${y}" stroke="#E5E8EF" stroke-width="1"/>
-                  <text x="65" y="${y+4}" text-anchor="end" font-size="11" fill="#6E7E9A">${fmtM(val)}</text>`;
+                  <text x="65" y="${y+4}" text-anchor="end" font-size="11" fill="#6E7E8A">${fmtM(val)}</text>`;
         }).join("");
 
         const priceTicks = [minPrice, data.putStrike, data.stockPrice, data.callStrike, maxPrice];
         const xLabels = priceTicks.map(v => {
           const x = 80 + ((v - minPrice) / (maxPrice - minPrice)) * 800;
-          return `<text x="${x}" y="315" text-anchor="middle" font-size="11" fill="#6E7E9A">$${Math.round(v)}</text>`;
+          return `<text x="${x}" y="315" text-anchor="middle" font-size="11" fill="#6E7E8A">$${Math.round(v)}</text>`;
         }).join("");
 
         const putX = 80 + ((data.putStrike - minPrice) / (maxPrice - minPrice)) * 800;
@@ -546,23 +549,23 @@ export async function generatePowerPoint({
             <line x1="80" y1="285" x2="880" y2="285" stroke="#D5DAE5"/>
             <line x1="80" y1="50" x2="80" y2="285" stroke="#D5DAE5"/>
 
-            <rect x="80" y="50" width="${Math.max(0, putX-80)}" height="235" fill="#FBEAE7" opacity="0.65"/>
+            <rect x="80" y="50" width="${Math.max(0, putX-80)}" height="235" fill="#F6E7E4" opacity="0.65"/>
             <rect x="${putX}" y="50" width="${Math.max(0, callX-putX)}" height="235" fill="#F5EDDA" opacity="0.65"/>
-            <rect x="${callX}" y="50" width="${Math.max(0, 880-callX)}" height="235" fill="#E8EEF8" opacity="0.65"/>
+            <rect x="${callX}" y="50" width="${Math.max(0, 880-callX)}" height="235" fill="#E6EDF1" opacity="0.65"/>
 
             <polyline points="${underlyingPts}" fill="none" stroke="#5D87B9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            <polyline points="${collarPts}" fill="none" stroke="#1A2744" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="${collarPts}" fill="none" stroke="#2E4A5A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 
-            <line x1="${putX}" y1="50" x2="${putX}" y2="285" stroke="#C94F3A" stroke-width="2" stroke-dasharray="5,4"/>
-            <line x1="${callX}" y1="50" x2="${callX}" y2="285" stroke="#3A6BBF" stroke-width="2" stroke-dasharray="5,4"/>
+            <line x1="${putX}" y1="50" x2="${putX}" y2="285" stroke="#C0504A" stroke-width="2" stroke-dasharray="5,4"/>
+            <line x1="${callX}" y1="50" x2="${callX}" y2="285" stroke="#4D738A" stroke-width="2" stroke-dasharray="5,4"/>
 
-            <text x="${putX}" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#C94F3A">Put $${Math.round(data.putStrike)}</text>
-            <text x="${callX}" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#3A6BBF">Call $${Math.round(data.callStrike)}</text>
+            <text x="${putX}" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#C0504A">Put $${Math.round(data.putStrike)}</text>
+            <text x="${callX}" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#4D738A">Call $${Math.round(data.callStrike)}</text>
 
             <line x1="610" y1="25" x2="650" y2="25" stroke="#5D87B9" stroke-width="4"/>
-            <text x="660" y="30" font-size="13" fill="#1A2030">Underlying</text>
-            <line x1="760" y1="25" x2="800" y2="25" stroke="#1A2744" stroke-width="4"/>
-            <text x="810" y="30" font-size="13" fill="#1A2030">Protective Collar</text>
+            <text x="660" y="30" font-size="13" fill="#2A3440">Underlying</text>
+            <line x1="760" y1="25" x2="800" y2="25" stroke="#2E4A5A" stroke-width="4"/>
+            <text x="810" y="30" font-size="13" fill="#2A3440">Protective Collar</text>
 
             ${xLabels}
           </svg>
@@ -666,12 +669,12 @@ export async function generatePowerPoint({
         const grid = [0,25,50,75,100].map(v => {
           const y = 285 - (v / 100) * 235;
           return `<line x1="80" y1="${y}" x2="880" y2="${y}" stroke="#E5E8EF"/>
-                  <text x="65" y="${y+4}" text-anchor="end" font-size="11" fill="#6E7E9A">${v}%</text>`;
+                  <text x="65" y="${y+4}" text-anchor="end" font-size="11" fill="#6E7E8A">${v}%</text>`;
         }).join("");
 
         const xLabels = labels.map((l, i) => {
           const x = 80 + (i / (labels.length - 1)) * 800;
-          return `<text x="${x}" y="315" text-anchor="middle" font-size="11" fill="#6E7E9A">${l}</text>`;
+          return `<text x="${x}" y="315" text-anchor="middle" font-size="11" fill="#6E7E8A">${l}</text>`;
         }).join("");
 
         return `
@@ -681,13 +684,13 @@ export async function generatePowerPoint({
             <line x1="80" y1="285" x2="880" y2="285" stroke="#D5DAE5"/>
             <line x1="80" y1="50" x2="80" y2="285" stroke="#D5DAE5"/>
 
-            <polyline points="${withoutPts}" fill="none" stroke="#C94F3A" stroke-width="4" stroke-dasharray="8,6" stroke-linecap="round" stroke-linejoin="round"/>
-            <polyline points="${withPts}" fill="none" stroke="#1E7A6E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="${withoutPts}" fill="none" stroke="#C0504A" stroke-width="4" stroke-dasharray="8,6" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="${withPts}" fill="none" stroke="#5E8A4E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 
-            <line x1="600" y1="25" x2="640" y2="25" stroke="#C94F3A" stroke-width="4" stroke-dasharray="8,6"/>
-            <text x="650" y="30" font-size="13" fill="#1A2030">Without Strategy</text>
-            <line x1="760" y1="25" x2="800" y2="25" stroke="#1E7A6E" stroke-width="4"/>
-            <text x="810" y="30" font-size="13" fill="#1A2030">With Strategy</text>
+            <line x1="600" y1="25" x2="640" y2="25" stroke="#C0504A" stroke-width="4" stroke-dasharray="8,6"/>
+            <text x="650" y="30" font-size="13" fill="#2A3440">Without Strategy</text>
+            <line x1="760" y1="25" x2="800" y2="25" stroke="#5E8A4E" stroke-width="4"/>
+            <text x="810" y="30" font-size="13" fill="#2A3440">With Strategy</text>
 
             ${xLabels}
           </svg>
@@ -869,159 +872,49 @@ export async function generatePowerPoint({
 
       // Removed assumptions slide.
 
-      // Slide 3 Where Are We Today
+      // Slide 3 — Where Are We Today (current position + portfolio mix, merged)
       slide = pptx.addSlide();
       title(
         slide,
         "02 · WHERE ARE WE TODAY?",
-        "Current Position & Planning Snapshot",
-        `This section summarizes the client's current portfolio position, key risks, and planning context.`
+        "Current Position",
+        `Current portfolio position, concentration, and the key risk and tax considerations.`
       );
 
-      statBox(slide, 0.65, 1.95, 2.55, "Total Net Worth", fmtM(data.netWorth), C.goldPale, C.gold);
-      statBox(slide, 3.45, 1.95, 2.55, "Investable Assets", fmtM(data.investableAssets), C.white, C.navy);
-      statBox(slide, 6.25, 1.95, 2.55, data.ticker ? `${data.ticker} Position` : "Concentrated Position", data.stockPosition > 0 ? fmtM(data.stockPosition) : "None", data.stockPosition > 0 ? C.coralPale : C.white, data.stockPosition > 0 ? C.coral : C.muted);
-      statBox(slide, 9.05, 1.95, 2.55, "Annual Income", data.income ? fmtM(data.income) : "N/A", C.tealPale, C.teal);
+      // Headline numbers — standard 4-box grid (left margin 0.85, ends ~12.47)
+      statBox(slide, 0.85, 1.45, 2.77, "Total Net Worth", fmtM(data.netWorth), C.goldPale, C.gold);
+      statBox(slide, 3.80, 1.45, 2.77, "Investable Assets", fmtM(data.investableAssets), C.white, C.navy);
+      statBox(slide, 6.75, 1.45, 2.77, data.ticker ? `${data.ticker} Position` : "Concentrated Position", data.stockPosition > 0 ? fmtM(data.stockPosition) : "None", data.stockPosition > 0 ? C.coralPale : C.white, data.stockPosition > 0 ? C.coral : C.muted);
+      statBox(slide, 9.70, 1.45, 2.77, "Annual Income", data.income ? fmtM(data.income) : "N/A", C.tealPale, C.teal);
 
-      slide.addText(`Current Portfolio Concentration`, {
-        x: 0.75,
-        y: 3.15,
-        w: 3.2,
-        h: 0.18,
-        fontSize: 10,
-        bold: true,
-        color: C.text,
-        margin: 0,
-      });
-
-      slide.addShape(pptx.ShapeType.roundRect, {
-        x: 0.75,
-        y: 3.5,
-        w: 11.7,
-        h: 0.32,
-        rectRadius: 0.1,
-        fill: { color: C.lightBar },
-        line: { color: C.lightBar },
-      });
-
-      const currentBarW = Math.max(0.3, 11.7 * Math.min(data.concentration, 100) / 100);
-      slide.addShape(pptx.ShapeType.roundRect, {
-        x: 0.75,
-        y: 3.5,
-        w: currentBarW,
-        h: 0.32,
-        rectRadius: 0.1,
-        fill: { color: C.navy },
-        line: { color: C.navy },
-      });
-
-      slide.addText(data.ticker && data.stockPosition > 0 ? `${data.ticker} · ${pct(data.concentration)}` : "Diversified", {
-        x: 0.95,
-        y: 3.58,
-        w: 2.2,
-        h: 0.12,
-        fontSize: 8,
-        bold: true,
-        color: C.white,
-        margin: 0,
-      });
-
-      card(
-        slide,
-        0.75,
-        4.25,
-        5.7,
-        1.6,
-        "Primary Risk",
-        `• 40% drawdown in ${data.ticker} = ~${fmtM(data.drawdown40Impact)} loss\n• Single-stock risk until diversification executes\n• Staged plan required to manage timing and taxes`
-      );
-
-      card(
-        slide,
-        6.8,
-        4.25,
-        5.7,
-        1.6,
-        "Tax Challenge",
-        `• Selling outright triggers ~${fmtM(data.immediateTax)} in taxes\n• Combined rate: ${pct(data.taxRate)} (federal + state)\n• Strategy must reduce concentration without a forced tax event`
-      );
-
-      footer(slide);
-
-
-
-
-
-      // Removed old 3rd slide: Portfolio Mix / Donut Chart.
-
-      // Slide 4 Where Are We Today — Portfolio Mix
-      slide = pptx.addSlide();
-      title(
-        slide,
-        "02B · WHERE ARE WE TODAY?",
-        "Current Portfolio Mix",
-        `This view shows the current portfolio composition and investable asset breakdown.`
-      );
-
+      // ── Concentration donut + breakdown (merged from the former mix slide) ──
       const chartInvestable = Math.max(data.investableAssets, data.stockPosition, 0.0001);
       const chartStock = Math.min(data.stockPosition, chartInvestable);
       const chartOther = Math.max(chartInvestable - chartStock, 0);
-
       const concentrationPct = chartInvestable > 0 ? (chartStock / chartInvestable) * 100 : 0;
 
-      // Specific illustrative breakdown of the remaining assets
-      const diversifiedEquities = chartOther * 0.40;
-      const fixedIncome = chartOther * 0.30;
-      const cashLiquidity = chartOther * 0.20;
-      const alternatives = chartOther * 0.10;
-
       const breakdown = [
-        { label: `${data.ticker} Position`, value: chartStock, color: "#1A2744" },
-        { label: "Diversified Equities", value: diversifiedEquities, color: "#D4A845" },
-        { label: "Fixed Income", value: fixedIncome, color: "#6F8FB8" },
-        { label: "Cash / Liquidity", value: cashLiquidity, color: "#7D9D9C" },
-        { label: "Alternatives", value: alternatives, color: "#C9CED8" },
-      ].map((item) => ({
-        ...item,
-        pct: chartInvestable > 0 ? (item.value / chartInvestable) * 100 : 0,
-      }));
+        { label: `${data.ticker} Position`, value: chartStock, color: "#2E4A5A" },
+        { label: "Diversified Equities", value: chartOther * 0.40, color: "#F48B1F" },
+        { label: "Fixed Income", value: chartOther * 0.30, color: "#97BC7A" },
+        { label: "Cash / Liquidity", value: chartOther * 0.20, color: "#4D738A" },
+        { label: "Alternatives", value: chartOther * 0.10, color: "#C7CED6" },
+      ].map((item) => ({ ...item, pct: chartInvestable > 0 ? (item.value / chartInvestable) * 100 : 0 }));
 
       function polarToCartesian(cx, cy, r, angleDeg) {
         const angleRad = (angleDeg - 90) * Math.PI / 180.0;
-        return {
-          x: cx + (r * Math.cos(angleRad)),
-          y: cy + (r * Math.sin(angleRad)),
-        };
+        return { x: cx + (r * Math.cos(angleRad)), y: cy + (r * Math.sin(angleRad)) };
       }
-
       function donutSegment(cx, cy, outerR, innerR, startAngle, endAngle, color) {
         const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-
         const p1 = polarToCartesian(cx, cy, outerR, startAngle);
         const p2 = polarToCartesian(cx, cy, outerR, endAngle);
         const p3 = polarToCartesian(cx, cy, innerR, endAngle);
         const p4 = polarToCartesian(cx, cy, innerR, startAngle);
-
-        return `
-          <path
-            d="
-              M ${p1.x} ${p1.y}
-              A ${outerR} ${outerR} 0 ${largeArc} 1 ${p2.x} ${p2.y}
-              L ${p3.x} ${p3.y}
-              A ${innerR} ${innerR} 0 ${largeArc} 0 ${p4.x} ${p4.y}
-              Z
-            "
-            fill="${color}"
-          />
-        `;
+        return `<path d="M ${p1.x} ${p1.y} A ${outerR} ${outerR} 0 ${largeArc} 1 ${p2.x} ${p2.y} L ${p3.x} ${p3.y} A ${innerR} ${innerR} 0 ${largeArc} 0 ${p4.x} ${p4.y} Z" fill="${color}"/>`;
       }
-
       function makeTrueDonutSvg(parts, centerLabel, subLabel) {
-        const cx = 230;
-        const cy = 230;
-        const outerR = 155;
-        const innerR = 78;
-
+        const cx = 230, cy = 230, outerR = 155, innerR = 78;
         let angle = 0;
         const segs = parts.map((part) => {
           const sweep = (part.pct / 100) * 360;
@@ -1029,147 +922,42 @@ export async function generatePowerPoint({
           angle += sweep;
           return seg;
         }).join("");
-
-        return `
-          <svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500">
-            <rect width="500" height="500" fill="#FFFFFF"/>
-            ${segs}
-            <circle cx="${cx}" cy="${cy}" r="${innerR - 3}" fill="#FFFFFF"/>
-            <text x="${cx}" y="${cy - 6}" text-anchor="middle" font-family="Georgia" font-size="38" font-weight="700" fill="#1A2744">${centerLabel}</text>
-            <text x="${cx}" y="${cy + 27}" text-anchor="middle" font-family="Inter, Arial" font-size="14" fill="#6E7E9A">${subLabel}</text>
-          </svg>
-        `;
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"><rect width="500" height="500" fill="#FFFFFF"/>${segs}<circle cx="${cx}" cy="${cy}" r="${innerR - 3}" fill="#FFFFFF"/><text x="${cx}" y="${cy - 6}" text-anchor="middle" font-family="Georgia" font-size="38" font-weight="700" fill="#2E4A5A">${centerLabel}</text><text x="${cx}" y="${cy + 27}" text-anchor="middle" font-family="Inter, Arial" font-size="14" fill="#6E7E8A">${subLabel}</text></svg>`;
       }
+      addSvg(slide, makeTrueDonutSvg(breakdown, `${concentrationPct.toFixed(1)}%`, `${data.ticker} Concentration`), 0.85, 2.55, 3.7, 3.7);
 
-      const donutSvg = makeTrueDonutSvg(
-        breakdown,
-        `${concentrationPct.toFixed(1)}%`,
-        `${data.ticker} Concentration`
-      );
-
-      addSvg(slide, donutSvg, 0.75, 1.78, 4.55, 4.55);
-
-      slide.addShape(pptx.ShapeType.roundRect, {
-        x: 6.05,
-        y: 1.95,
-        w: 5.75,
-        h: 3.85,
-        rectRadius: 0.08,
-        fill: { color: C.white },
-        line: { color: C.border, width: 0.8 },
-      });
-
-      slide.addText("Portfolio Breakdown", {
-        x: 6.4,
-        y: 2.22,
-        w: 5.0,
-        h: 0.22,
-        fontSize: 13,
-        bold: true,
-        color: C.navy,
-        margin: 0,
-      });
-
-      slide.addShape(pptx.ShapeType.line, {
-        x: 6.4,
-        y: 2.62,
-        w: 5.0,
-        h: 0,
-        line: { color: C.border, width: 0.8 },
-      });
-
+      // Breakdown table
+      slide.addShape(pptx.ShapeType.roundRect, { x: 4.75, y: 2.62, w: 3.3, h: 3.55, rectRadius: 0.08, fill: { color: C.white }, line: { color: C.border, width: 0.8 } });
+      slide.addText("Portfolio Breakdown", { x: 4.97, y: 2.82, w: 2.9, h: 0.22, fontSize: 12, bold: true, color: C.navy, margin: 0 });
+      slide.addShape(pptx.ShapeType.line, { x: 4.97, y: 3.18, w: 2.86, h: 0, line: { color: C.border, width: 0.8 } });
       breakdown.forEach((item, i) => {
-        const y = 3.0 + i * 0.40;
-
-        slide.addShape(pptx.ShapeType.rect, {
-          x: 6.45,
-          y,
-          w: 0.18,
-          h: 0.18,
-          fill: { color: item.color },
-          line: { color: item.color },
-        });
-
-        slide.addText(item.label, {
-          x: 6.78,
-          y: y - 0.02,
-          w: 2.8,
-          h: 0.18,
-          fontSize: 11,
-          color: C.text,
-          margin: 0,
-        });
-
-        slide.addText(`${fmtM(item.value)} | ${pct(item.pct)}`, {
-          x: 9.25,
-          y: y - 0.02,
-          w: 1.95,
-          h: 0.18,
-          fontSize: 11,
-          bold: true,
-          color: i === 0 ? C.navy : C.gold,
-          align: "right",
-          margin: 0,
-        });
+        const y = 3.44 + i * 0.42;
+        slide.addShape(pptx.ShapeType.rect, { x: 4.99, y, w: 0.16, h: 0.16, fill: { color: item.color }, line: { color: item.color } });
+        slide.addText(item.label, { x: 5.24, y: y - 0.03, w: 1.7, h: 0.2, fontSize: 9.5, color: C.text, margin: 0 });
+        slide.addText(`${fmtM(item.value)} · ${pct(item.pct)}`, { x: 6.7, y: y - 0.03, w: 1.15, h: 0.2, fontSize: 9.5, bold: true, color: i === 0 ? C.navy : C.gold, align: "right", margin: 0 });
       });
+      slide.addShape(pptx.ShapeType.line, { x: 4.97, y: 5.56, w: 2.86, h: 0, line: { color: C.border, width: 0.8 } });
+      slide.addText("Investable Assets", { x: 4.99, y: 5.72, w: 1.6, h: 0.2, fontSize: 9, color: C.muted, margin: 0 });
+      slide.addText(fmtM(chartInvestable), { x: 6.7, y: 5.72, w: 1.15, h: 0.2, fontSize: 9, bold: true, color: C.text, align: "right", margin: 0 });
 
-      slide.addShape(pptx.ShapeType.line, {
-        x: 6.4,
-        y: 5.05,
-        w: 5.0,
-        h: 0,
-        line: { color: C.border, width: 0.8 },
-      });
-
-      slide.addText("Investable Assets", {
-        x: 6.45,
-        y: 5.28,
-        w: 2.6,
-        h: 0.18,
-        fontSize: 9.5,
-        color: C.muted,
-        margin: 0,
-      });
-
-      slide.addText(fmtM(chartInvestable), {
-        x: 9.2,
-        y: 5.28,
-        w: 1.95,
-        h: 0.18,
-        fontSize: 9.5,
-        bold: true,
-        color: C.text,
-        align: "right",
-        margin: 0,
-      });
-
-      slide.addText("Note", {
-        x: 0.95,
-        y: 6.18,
-        w: 0.55,
-        h: 0.16,
-        fontSize: 8,
-        bold: true,
-        color: C.blue,
-        charSpace: 1.0,
-        margin: 0,
-      });
-
-      slide.addText(
-        `Other asset categories are illustrative unless the client notes specify cash, bonds, equities, or alternatives separately.`,
-        {
-          x: 1.45,
-          y: 6.16,
-          w: 10.2,
-          h: 0.18,
-          fontSize: 9.4,
-          color: C.text,
-          fit: "shrink",
-          margin: 0,
-        }
+      // Key Risks & Tax Exposure (combined from the former snapshot cards)
+      card(
+        slide,
+        8.25, 2.62, 4.22, 3.55,
+        "Key Risks & Tax Exposure",
+        `• 40% drawdown in ${data.ticker} ≈ ${fmtM(data.drawdown40Impact)} loss\n` +
+        `• Single-stock concentration risk until diversification executes\n` +
+        `• ~${fmtM(data.immediateTax)} tax if sold outright today (${pct(data.taxRate)} combined)\n` +
+        `• Goal: reduce concentration without a forced tax event`,
+        C.white
       );
 
       footer(slide);
+
+
+
+
+
 
       // Slide 5 — Dynamic Action Plan + Implementation Pathway
       slide = pptx.addSlide();
@@ -1986,8 +1774,8 @@ export async function generatePowerPoint({
 <svg xmlns="http://www.w3.org/2000/svg" width="980" height="420" viewBox="0 0 980 420">
   <rect x="0" y="0" width="980" height="420" fill="#FFFFFF"/>
 
-  <text x="22" y="28" font-size="19" font-weight="700" fill="#1A2744">Illustrative Example of Leveraged Tax-Loss Harvesting</text>
-  <text x="22" y="48" font-size="12" fill="#6E7E9A">Modeled using proposal assumptions</text>
+  <text x="22" y="28" font-size="19" font-weight="700" fill="#2E4A5A">Illustrative Example of Leveraged Tax-Loss Harvesting</text>
+  <text x="22" y="48" font-size="12" fill="#6E7E8A">Modeled using proposal assumptions</text>
 
   <rect x="70" y="75" width="790" height="250" fill="#FFFFFF" stroke="#D5DAE5" stroke-width="1.2"/>
 
@@ -2129,42 +1917,42 @@ export async function generatePowerPoint({
         const y = 285 - r * 220;
         return `
           <line x1="80" y1="${y}" x2="870" y2="${y}" stroke="#E5E8EF" stroke-width="1"/>
-          <text x="68" y="${y + 4}" text-anchor="end" font-size="11" fill="#6E7E9A">${fmtM(val)}</text>
+          <text x="68" y="${y + 4}" text-anchor="end" font-size="11" fill="#6E7E8A">${fmtM(val)}</text>
         `;
       }).join("");
 
       const xLabels = [minPrice, data.putStrike, data.stockPrice, data.callStrike, maxPrice].map(v => {
         const x = 80 + ((v - minPrice) / (maxPrice - minPrice)) * 790;
-        return `<text x="${x}" y="318" text-anchor="middle" font-size="11" fill="#6E7E9A">$${Math.round(v)}</text>`;
+        return `<text x="${x}" y="318" text-anchor="middle" font-size="11" fill="#6E7E8A">$${Math.round(v)}</text>`;
       }).join("");
 
       const svg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="960" height="350" viewBox="0 0 960 350">
           <rect width="960" height="350" fill="#FFFFFF"/>
-          <rect x="80" y="65" width="${putX - 80}" height="220" fill="#FBEAE7" opacity="0.55"/>
+          <rect x="80" y="65" width="${putX - 80}" height="220" fill="#F6E7E4" opacity="0.55"/>
           <rect x="${putX}" y="65" width="${callX - putX}" height="220" fill="#F5EDDA" opacity="0.55"/>
-          <rect x="${callX}" y="65" width="${870 - callX}" height="220" fill="#E8EEF8" opacity="0.55"/>
+          <rect x="${callX}" y="65" width="${870 - callX}" height="220" fill="#E6EDF1" opacity="0.55"/>
 
           ${yGrid}
 
           <line x1="80" y1="285" x2="870" y2="285" stroke="#D5DAE5"/>
           <line x1="80" y1="65" x2="80" y2="285" stroke="#D5DAE5"/>
 
-          <line x1="${putX}" y1="65" x2="${putX}" y2="285" stroke="#C94F3A" stroke-width="2" stroke-dasharray="6,4"/>
-          <line x1="${spotX}" y1="65" x2="${spotX}" y2="285" stroke="#B8892A" stroke-width="2" stroke-dasharray="6,4"/>
-          <line x1="${callX}" y1="65" x2="${callX}" y2="285" stroke="#3A6BBF" stroke-width="2" stroke-dasharray="6,4"/>
+          <line x1="${putX}" y1="65" x2="${putX}" y2="285" stroke="#C0504A" stroke-width="2" stroke-dasharray="6,4"/>
+          <line x1="${spotX}" y1="65" x2="${spotX}" y2="285" stroke="#E07D1A" stroke-width="2" stroke-dasharray="6,4"/>
+          <line x1="${callX}" y1="65" x2="${callX}" y2="285" stroke="#4D738A" stroke-width="2" stroke-dasharray="6,4"/>
 
           <polyline points="${underlyingPts}" fill="none" stroke="#5D87B9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-          <polyline points="${collarPts}" fill="none" stroke="#1A2744" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="${collarPts}" fill="none" stroke="#2E4A5A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 
-          <text x="${putX}" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#C94F3A">Put $${data.putStrike.toFixed(2)}</text>
-          <text x="${spotX}" y="40" text-anchor="middle" font-size="11" font-weight="700" fill="#B8892A">Spot $${data.stockPrice.toFixed(2)}</text>
-          <text x="${callX}" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#3A6BBF">Call $${data.callStrike.toFixed(2)}</text>
+          <text x="${putX}" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#C0504A">Put $${data.putStrike.toFixed(2)}</text>
+          <text x="${spotX}" y="40" text-anchor="middle" font-size="11" font-weight="700" fill="#E07D1A">Spot $${data.stockPrice.toFixed(2)}</text>
+          <text x="${callX}" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#4D738A">Call $${data.callStrike.toFixed(2)}</text>
 
           <line x1="625" y1="22" x2="665" y2="22" stroke="#5D87B9" stroke-width="4"/>
-          <text x="675" y="27" font-size="12" fill="#1A2030">Underlying</text>
-          <line x1="775" y1="22" x2="815" y2="22" stroke="#1A2744" stroke-width="4"/>
-          <text x="825" y="27" font-size="12" fill="#1A2030">Protective Collar</text>
+          <text x="675" y="27" font-size="12" fill="#2A3440">Underlying</text>
+          <line x1="775" y1="22" x2="815" y2="22" stroke="#2E4A5A" stroke-width="4"/>
+          <text x="825" y="27" font-size="12" fill="#2A3440">Protective Collar</text>
 
           ${xLabels}
         </svg>
@@ -2598,7 +2386,7 @@ export async function generatePowerPoint({
         }
 
         function makeAllocationPieSvg(items) {
-          const colors = ["#1A2744", "#3A6BBF", "#B8892A", "#8A98AD"];
+          const colors = ["#2E4A5A", "#4D738A", "#E07D1A", "#8A98AD"];
           const total = items.reduce((sum, item) => sum + Math.max(0, item.value), 0) || 1;
           let currentAngle = 0;
 
@@ -2617,7 +2405,7 @@ export async function generatePowerPoint({
               const y = 42 + i * 34;
               return `
                 <rect x="320" y="${y}" width="16" height="16" rx="3" fill="${colors[i % colors.length]}"/>
-                <text x="346" y="${y + 13}" font-size="16" font-family="Arial" fill="#1A2030">${item.label}: ${pctLabel(item.value)}</text>
+                <text x="346" y="${y + 13}" font-size="16" font-family="Arial" fill="#2A3440">${item.label}: ${pctLabel(item.value)}</text>
               `;
             })
             .join("");
@@ -2627,8 +2415,8 @@ export async function generatePowerPoint({
               <rect width="620" height="320" fill="#FFFFFF"/>
               ${slices}
               <circle cx="150" cy="150" r="58" fill="#FFFFFF"/>
-              <text x="150" y="142" text-anchor="middle" font-size="15" font-family="Arial" font-weight="700" fill="#1A2744">Model</text>
-              <text x="150" y="165" text-anchor="middle" font-size="15" font-family="Arial" font-weight="700" fill="#1A2744">Allocation</text>
+              <text x="150" y="142" text-anchor="middle" font-size="15" font-family="Arial" font-weight="700" fill="#2E4A5A">Model</text>
+              <text x="150" y="165" text-anchor="middle" font-size="15" font-family="Arial" font-weight="700" fill="#2E4A5A">Allocation</text>
               ${legend}
             </svg>
           `;
@@ -2738,7 +2526,7 @@ export async function generatePowerPoint({
         //           Fixed Income · Alternatives · Cash
         function makePortfolioDonutSvg(sgt) {
           const SEGMENTS = [
-            { key: "Domestic Equity",  color: "#1A2744" },  // deep navy
+            { key: "Domestic Equity",  color: "#2E4A5A" },  // deep navy
             { key: "Intl Developed",   color: "#1480C8" },  // vivid sky blue
             { key: "Emerging Markets", color: "#27A066" },  // medium green
             { key: "Fixed Income",     color: "#7056A0" },  // muted purple
@@ -2777,16 +2565,16 @@ export async function generatePowerPoint({
             const ly   = 42 + row * 72;
             return `
               <rect x="${lx}" y="${ly}" width="14" height="14" rx="2" fill="${p.color}"/>
-              <text x="${lx + 18}" y="${ly + 11}" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" fill="#1A2744">${p.pct.toFixed(1)}%</text>
-              <text x="${lx + 18}" y="${ly + 24}" font-family="Inter, Arial, sans-serif" font-size="10" fill="#6E7E9A">${p.label}</text>`;
+              <text x="${lx + 18}" y="${ly + 11}" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" fill="#2E4A5A">${p.pct.toFixed(1)}%</text>
+              <text x="${lx + 18}" y="${ly + 24}" font-family="Inter, Arial, sans-serif" font-size="10" fill="#6E7E8A">${p.label}</text>`;
           }).join("");
 
           return `<svg xmlns="http://www.w3.org/2000/svg" width="530" height="444" viewBox="0 0 530 444">
             <rect width="530" height="444" fill="#FFFFFF"/>
             ${segs}
             <circle cx="${cx}" cy="${cy}" r="${innerR - 4}" fill="#FFFFFF"/>
-            <text x="${cx}" y="${cy - 10}" text-anchor="middle" font-family="Georgia, serif" font-size="32" font-weight="700" fill="#1A2744">${totalEquity.toFixed(1)}%</text>
-            <text x="${cx}" y="${cy + 20}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" fill="#6E7E9A">Total Equity</text>
+            <text x="${cx}" y="${cy - 10}" text-anchor="middle" font-family="Georgia, serif" font-size="32" font-weight="700" fill="#2E4A5A">${totalEquity.toFixed(1)}%</text>
+            <text x="${cx}" y="${cy + 20}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" fill="#6E7E8A">Total Equity</text>
             ${legendItems}
           </svg>`;
         }
@@ -2800,10 +2588,10 @@ export async function generatePowerPoint({
           `${profileLabel} risk profile · ${realFunds.length} active fund positions`
         );
 
-        statBox(slide, 0.85, 1.78, 2.85, "Strategy Model",   selectedConfig.label,                       C.white,    C.navy);
-        statBox(slide, 3.90, 1.78, 2.85, "Risk Profile",     String(profileLabel).split("—")[0].trim(),   C.goldPale, C.gold);
-        statBox(slide, 6.95, 1.78, 2.85, "Equity",           pctLabel(equityPct),                         C.tealPale, C.teal);
-        statBox(slide, 9.95, 1.78, 3.00, "Fixed Income",     pctLabel(fixedIncPct),                       C.bluePale, C.blue);
+        statBox(slide, 0.85, 1.78, 2.77, "Strategy Model",   selectedConfig.label,                       C.white,    C.navy);
+        statBox(slide, 3.80, 1.78, 2.77, "Risk Profile",     String(profileLabel).split("—")[0].trim(),   C.goldPale, C.gold);
+        statBox(slide, 6.75, 1.78, 2.77, "Equity",           pctLabel(equityPct),                         C.tealPale, C.teal);
+        statBox(slide, 9.70, 1.78, 2.77, "Fixed Income",     pctLabel(fixedIncPct),                       C.bluePale, C.blue);
 
         // Donut
         const overviewDonutSvg = makePortfolioDonutSvg(subGroupTotals);
@@ -3183,9 +2971,9 @@ export async function generatePowerPoint({
                 const gxs = Array.from({ length: N + 1 }, (_, i) => xa + (xb - xa) * i / N);
                 const gys = Array.from({ length: N + 1 }, (_, i) => ya + (yb - ya) * i / N);
                 const gridX = gxs.map(v => `<line x1="${toX(v).toFixed(1)}" y1="${mt}" x2="${toX(v).toFixed(1)}" y2="${mt + ph}" stroke="#E8ECF0" stroke-width="1"/>
-                  <text x="${toX(v).toFixed(1)}" y="${mt + ph + 14}" text-anchor="middle" font-size="9" fill="#6E7E9A">${(v * 100).toFixed(1)}%</text>`).join("");
+                  <text x="${toX(v).toFixed(1)}" y="${mt + ph + 14}" text-anchor="middle" font-size="9" fill="#6E7E8A">${(v * 100).toFixed(1)}%</text>`).join("");
                 const gridY = gys.map(v => `<line x1="${ml}" y1="${toY(v).toFixed(1)}" x2="${ml + pw}" y2="${toY(v).toFixed(1)}" stroke="#E8ECF0" stroke-width="1"/>
-                  <text x="${ml - 5}" y="${(parseFloat(toY(v).toFixed(1)) + 3.5).toFixed(0)}" text-anchor="end" font-size="9" fill="#6E7E9A">${(v * 100).toFixed(1)}%</text>`).join("");
+                  <text x="${ml - 5}" y="${(parseFloat(toY(v).toFixed(1)) + 3.5).toFixed(0)}" text-anchor="end" font-size="9" fill="#6E7E8A">${(v * 100).toFixed(1)}%</text>`).join("");
 
                 // Gap annotations
                 let gaps = "";
@@ -3195,16 +2983,16 @@ export async function generatePowerPoint({
                   const fx = toX(effSig), cy_ = toY(cRet), cx_ = toX(cVol);
                   if (cx_ - fx > 8) {
                     const exRisk = (cVol - effSig) * 100;
-                    gaps += `<line x1="${fx.toFixed(1)}" y1="${cy_.toFixed(1)}" x2="${(cx_ - 10).toFixed(1)}" y2="${cy_.toFixed(1)}" stroke="#C94F3A" stroke-width="1.5" stroke-dasharray="4 2.5" opacity="0.75"/>
+                    gaps += `<line x1="${fx.toFixed(1)}" y1="${cy_.toFixed(1)}" x2="${(cx_ - 10).toFixed(1)}" y2="${cy_.toFixed(1)}" stroke="#C0504A" stroke-width="1.5" stroke-dasharray="4 2.5" opacity="0.75"/>
                       <rect x="${((fx + cx_) / 2 - 40).toFixed(1)}" y="${(cy_ - 19).toFixed(1)}" width="80" height="14" rx="3" fill="white" opacity="0.85"/>
-                      <text x="${((fx + cx_) / 2).toFixed(1)}" y="${(cy_ - 8).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#C94F3A">+${exRisk.toFixed(1)}% excess risk</text>`;
+                      <text x="${((fx + cx_) / 2).toFixed(1)}" y="${(cy_ - 8).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#C0504A">+${exRisk.toFixed(1)}% excess risk</text>`;
                   }
                   if (effRet != null && cy_ - toY(effRet) > 8) {
                     const fRetY = toY(effRet);
                     const foregone = (effRet - cRet) * 100;
-                    gaps += `<line x1="${cx_.toFixed(1)}" y1="${(cy_ - 10).toFixed(1)}" x2="${cx_.toFixed(1)}" y2="${(fRetY + 8).toFixed(1)}" stroke="#1E7A6E" stroke-width="1.5" stroke-dasharray="4 2.5" opacity="0.75"/>
+                    gaps += `<line x1="${cx_.toFixed(1)}" y1="${(cy_ - 10).toFixed(1)}" x2="${cx_.toFixed(1)}" y2="${(fRetY + 8).toFixed(1)}" stroke="#5E8A4E" stroke-width="1.5" stroke-dasharray="4 2.5" opacity="0.75"/>
                       <rect x="${(cx_ + 4).toFixed(1)}" y="${((cy_ + fRetY) / 2 - 7).toFixed(1)}" width="76" height="14" rx="3" fill="white" opacity="0.85"/>
-                      <text x="${(cx_ + 42).toFixed(1)}" y="${((cy_ + fRetY) / 2 + 4).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#1E7A6E">+${foregone.toFixed(1)}% foregone</text>`;
+                      <text x="${(cx_ + 42).toFixed(1)}" y="${((cy_ + fRetY) / 2 + 4).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#5E8A4E">+${foregone.toFixed(1)}% foregone</text>`;
                   }
                 }
 
@@ -3219,17 +3007,17 @@ export async function generatePowerPoint({
                   ${gridX}${gridY}
                   <line x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt + ph}" stroke="#C8D0DE" stroke-width="1.5"/>
                   <line x1="${ml}" y1="${mt + ph}" x2="${ml + pw}" y2="${mt + ph}" stroke="#C8D0DE" stroke-width="1.5"/>
-                  <path d="${pathD} L${toX(sigMax).toFixed(1)},${(mt + ph).toFixed(1)} L${toX(mv_sig).toFixed(1)},${(mt + ph).toFixed(1)} Z" fill="#FDF0ED" opacity="0.5" clip-path="url(#rrPpt)"/>
-                  <path d="${pathD}" fill="none" stroke="#1A2744" stroke-width="2.2" opacity="0.75" clip-path="url(#rrPpt)"/>
-                  <circle cx="${toX(mv_sig).toFixed(1)}" cy="${toY(mv_ret).toFixed(1)}" r="3.5" fill="#1A2744" opacity="0.5"/>
-                  <text x="${(toX(mv_sig) + 6).toFixed(1)}" y="${(toY(mv_ret) + 4).toFixed(1)}" font-size="8" fill="#6b7a99" font-style="italic">Efficient Frontier</text>
+                  <path d="${pathD} L${toX(sigMax).toFixed(1)},${(mt + ph).toFixed(1)} L${toX(mv_sig).toFixed(1)},${(mt + ph).toFixed(1)} Z" fill="#F6E7E4" opacity="0.5" clip-path="url(#rrPpt)"/>
+                  <path d="${pathD}" fill="none" stroke="#2E4A5A" stroke-width="2.2" opacity="0.75" clip-path="url(#rrPpt)"/>
+                  <circle cx="${toX(mv_sig).toFixed(1)}" cy="${toY(mv_ret).toFixed(1)}" r="3.5" fill="#2E4A5A" opacity="0.5"/>
+                  <text x="${(toX(mv_sig) + 6).toFixed(1)}" y="${(toY(mv_ret) + 4).toFixed(1)}" font-size="8" fill="#6E7E8A" font-style="italic">Efficient Frontier</text>
                   ${gaps}
-                  <circle cx="${tDotX.toFixed(1)}" cy="${tDotY.toFixed(1)}" r="7" fill="#1E7A6E"/>
-                  <text x="${(tDotX + 11).toFixed(1)}" y="${tLabelY.toFixed(1)}" font-size="9.5" font-weight="700" fill="#1E7A6E">Target  ${(tRet * 100).toFixed(1)}% / ${(tVol * 100).toFixed(1)}% vol</text>
-                  ${hasCurrent ? `<circle cx="${cDotX.toFixed(1)}" cy="${cDotY.toFixed(1)}" r="7" fill="#C94F3A"/>
-                    <text x="${(cDotX + 11).toFixed(1)}" y="${cLabelY.toFixed(1)}" font-size="9.5" font-weight="700" fill="#C94F3A">Current  ${(cRet * 100).toFixed(1)}% / ${(cVol * 100).toFixed(1)}% vol</text>` : ""}
-                  <text x="${(ml + pw / 2).toFixed(0)}" y="${H - 4}" text-anchor="middle" font-size="9.5" font-weight="600" fill="#6b7a99">Risk — Annualized Volatility</text>
-                  <text transform="rotate(-90 11 ${(mt + ph / 2).toFixed(0)})" x="11" y="${(mt + ph / 2).toFixed(0)}" text-anchor="middle" font-size="9.5" font-weight="600" fill="#6b7a99">Return — CAGR</text>
+                  <circle cx="${tDotX.toFixed(1)}" cy="${tDotY.toFixed(1)}" r="7" fill="#5E8A4E"/>
+                  <text x="${(tDotX + 11).toFixed(1)}" y="${tLabelY.toFixed(1)}" font-size="9.5" font-weight="700" fill="#5E8A4E">Target  ${(tRet * 100).toFixed(1)}% / ${(tVol * 100).toFixed(1)}% vol</text>
+                  ${hasCurrent ? `<circle cx="${cDotX.toFixed(1)}" cy="${cDotY.toFixed(1)}" r="7" fill="#C0504A"/>
+                    <text x="${(cDotX + 11).toFixed(1)}" y="${cLabelY.toFixed(1)}" font-size="9.5" font-weight="700" fill="#C0504A">Current  ${(cRet * 100).toFixed(1)}% / ${(cVol * 100).toFixed(1)}% vol</text>` : ""}
+                  <text x="${(ml + pw / 2).toFixed(0)}" y="${H - 4}" text-anchor="middle" font-size="9.5" font-weight="600" fill="#6E7E8A">Risk — Annualized Volatility</text>
+                  <text transform="rotate(-90 11 ${(mt + ph / 2).toFixed(0)})" x="11" y="${(mt + ph / 2).toFixed(0)}" text-anchor="middle" font-size="9.5" font-weight="600" fill="#6E7E8A">Return — CAGR</text>
                 </svg>`;
               }
 
@@ -3266,7 +3054,7 @@ export async function generatePowerPoint({
             // ── FEE DRAG SLIDE ───────────────────────────────────────────────
             // The lifetime dollar cost of the fee difference between the current
             // and proposed portfolios. Only shown when there's a real comparison.
-            if (modules.feeDragAnalysis !== false && t.weightedFeePct != null && c?.weightedFeePct != null && (Number(data.investableAssets) || 0) > 0) {
+            if (modules.feeDragAnalysis === true && t.weightedFeePct != null && c?.weightedFeePct != null && (Number(data.investableAssets) || 0) > 0) {
               const pv = Number(data.investableAssets) || 0; // $M
               const horizon = 20;
               const grossReturnPct = 7;
@@ -3335,7 +3123,7 @@ export async function generatePowerPoint({
             // ── MONTE CARLO PROJECTION SLIDE ─────────────────────────────────
             // Range of plausible futures from the target portfolio's historical
             // return/volatility. Forward-looking — complements the backtest.
-            if (modules.monteCarloProjection !== false && ts.annualizedReturn != null && (Number(data.investableAssets) || 0) > 0) {
+            if (modules.monteCarloProjection === true && ts.annualizedReturn != null && (Number(data.investableAssets) || 0) > 0) {
               const mcYears = 20;
               const mcInit = Number(data.investableAssets) || 0; // $M
               const expRet = ts.annualizedReturn * 100;
@@ -3382,17 +3170,17 @@ export async function generatePowerPoint({
                 const grid = ticks.map(v => {
                   const y = toY(v).toFixed(1);
                   return `<line x1="${ml}" y1="${y}" x2="${W - mr}" y2="${y}" stroke="#E8ECF0" stroke-width="1"/>
-                    <text x="${ml - 6}" y="${(parseFloat(y) + 4).toFixed(0)}" text-anchor="end" font-size="11" fill="#6E7E9A">$${(v).toFixed(0)}M</text>`;
+                    <text x="${ml - 6}" y="${(parseFloat(y) + 4).toFixed(0)}" text-anchor="end" font-size="11" fill="#6E7E8A">$${(v).toFixed(0)}M</text>`;
                 }).join("");
-                const xlab = [0, Math.round(n / 2), n].map(y => `<text x="${toX(y).toFixed(1)}" y="${mt + ph + 22}" text-anchor="middle" font-size="11" fill="#6E7E9A">Yr ${y}</text>`).join("");
+                const xlab = [0, Math.round(n / 2), n].map(y => `<text x="${toX(y).toFixed(1)}" y="${mt + ph + 22}" text-anchor="middle" font-size="11" fill="#6E7E8A">Yr ${y}</text>`).join("");
                 return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
                   <rect width="${W}" height="${H}" fill="#FFFFFF"/>
                   ${grid}
-                  <path d="${band}" fill="#1E7A6E" opacity="0.14"/>
-                  <path d="${mid}" fill="none" stroke="#1E7A6E" stroke-width="3" stroke-linejoin="round"/>
+                  <path d="${band}" fill="#5E8A4E" opacity="0.14"/>
+                  <path d="${mid}" fill="none" stroke="#5E8A4E" stroke-width="3" stroke-linejoin="round"/>
                   <line x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt + ph}" stroke="#D5DAE5" stroke-width="1"/>
                   <line x1="${ml}" y1="${mt + ph}" x2="${W - mr}" y2="${mt + ph}" stroke="#D5DAE5" stroke-width="1"/>
-                  <text x="${ml + 8}" y="${mt + 14}" font-size="11" fill="#1E7A6E" font-weight="700">Shaded band: 10th–90th percentile · line: median</text>
+                  <text x="${ml + 8}" y="${mt + 14}" font-size="11" fill="#5E8A4E" font-weight="700">Shaded band: 10th–90th percentile · line: median</text>
                   ${xlab}
                 </svg>`;
               }
@@ -3411,7 +3199,7 @@ export async function generatePowerPoint({
             // How the recommended vs. current portfolios held up in real crises,
             // sliced from the same historical window. Skips uncovered crises.
             {
-              const stress = modules.stressTestAnalysis !== false
+              const stress = modules.stressTestAnalysis === true
                 ? stressTest(ts.growthSeries, cs?.growthSeries).filter(s => s.covered)
                 : [];
               if (stress.length > 0) {
