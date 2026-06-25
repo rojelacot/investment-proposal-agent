@@ -839,38 +839,38 @@ export async function generatePowerPoint({
         overviewBullets.push({ text: `Implement all selected strategies in a sequenced, tax-sensitive manner`, options: bOpts });
       }
 
-      // Summary of Goals card (left, on the 0.85 grid)
-      slide.addShape(pptx.ShapeType.roundRect, { x: 0.85, y: 2.62, w: 6.4, h: 3.6, rectRadius: 0.08, fill: { color: C.white }, line: { color: C.border, width: 0.7 } });
+      // Goals are the hero of the overview; the outcome stat boxes above are the
+      // proof. (One full-width panel — airier, and avoids repeating the outcome
+      // numbers in a second card.)
+      slide.addShape(pptx.ShapeType.roundRect, { x: 0.85, y: 2.62, w: 11.62, h: 3.6, rectRadius: 0.08, fill: { color: C.white }, line: { color: C.border, width: 0.7 } });
       slide.addShape(pptx.ShapeType.rect, { x: 0.85, y: 2.62, w: 0.07, h: 3.6, fill: { color: C.goldLight }, line: { color: C.goldLight } });
-      slide.addText("SUMMARY OF GOALS & AGENDA", { x: 1.07, y: 2.79, w: 5.9, h: 0.18, fontSize: 7.2, bold: true, color: C.blue, charSpace: 1.1, margin: 0 });
-      slide.addShape(pptx.ShapeType.line, { x: 1.07, y: 3.09, w: 5.96, h: 0, line: { color: C.border, width: 0.6 } });
-      slide.addText(overviewBullets, { x: 1.07, y: 3.2, w: 5.96, h: 2.8, fontSize: 11, color: C.text, margin: 0, valign: "top" });
-
-      // Right card — outcome-focused (avoids repeating the current-state numbers
-      // shown on the Current Position slide).
-      const dot = (color, after = 6) => ({ bullet: { type: "bullet" }, paraSpaceAfter: after, color, fontSize: 11 });
-      const obsLines = [];
-      let obsHeading;
-      if (ovHasValue) {
-        obsHeading = "WHAT THIS PLAN DELIVERS";
-        if (scorecard.taxSaved > 0) obsLines.push({ text: `${fmtK(scorecard.taxSaved)} in tax saved vs. an outright sale`, options: dot(C.teal) });
-        if (scorecard.downsideProtected > 0) obsLines.push({ text: `${fmtK(scorecard.downsideProtected)} removed from single-stock crash risk`, options: dot(C.blue) });
-        if (data.afterCrtConcentration != null) obsLines.push({ text: `Concentration reduced to ~${pct(data.afterCrtConcentration)}`, options: dot(C.gold) });
-        if (data.crtIncome > 0) obsLines.push({ text: `${fmtK(data.crtIncome)}/yr estimated CRT income`, options: dot(C.teal, 0) });
-      } else {
-        obsHeading = "CLIENT SNAPSHOT";
-        obsLines.push({ text: `${fmtM(data.netWorth)} total net worth`, options: dot(C.blue) });
-        obsLines.push({ text: `${fmtM(data.investableAssets)} investable assets`, options: dot(C.navy) });
-        obsLines.push({ text: `Risk profile: ${riskProfileLabel || "Review"}`, options: dot(C.teal, 0) });
-      }
-
-      slide.addShape(pptx.ShapeType.roundRect, { x: 7.45, y: 2.62, w: 5.02, h: 3.6, rectRadius: 0.08, fill: { color: C.white }, line: { color: C.border, width: 0.7 } });
-      slide.addShape(pptx.ShapeType.rect, { x: 7.45, y: 2.62, w: 0.07, h: 3.6, fill: { color: C.goldLight }, line: { color: C.goldLight } });
-      slide.addText(obsHeading, { x: 7.67, y: 2.79, w: 4.5, h: 0.18, fontSize: 7.2, bold: true, color: C.blue, charSpace: 1.1, margin: 0 });
-      slide.addShape(pptx.ShapeType.line, { x: 7.67, y: 3.09, w: 4.58, h: 0, line: { color: C.border, width: 0.6 } });
-      slide.addText(obsLines, { x: 7.67, y: 3.2, w: 4.58, h: 2.8, fontSize: 11, color: C.text, margin: 0, valign: "top" });
+      slide.addText("YOUR GOALS & OBJECTIVES", { x: 1.12, y: 2.86, w: 11.0, h: 0.2, fontSize: 8, bold: true, color: C.blue, charSpace: 1.3, margin: 0 });
+      slide.addShape(pptx.ShapeType.line, { x: 1.12, y: 3.2, w: 11.1, h: 0, line: { color: C.border, width: 0.6 } });
+      const goalBullets = overviewBullets.map(b => ({ text: b.text, options: { bullet: { type: "bullet" }, paraSpaceAfter: 13 } }));
+      slide.addText(goalBullets, { x: 1.12, y: 3.42, w: 11.1, h: 2.65, fontSize: 13, color: C.text, margin: 0, valign: "top" });
 
       footer(slide);
+
+      // ── YOUR FINANCIAL PICTURE (planning scope — coverage, not numbers) ──────
+      // Shows the breadth of planning we cover; deliberately avoids repeating the
+      // figures on Current Position / Overview.
+      if (modules.financialPicture !== false) {
+        slide = pptx.addSlide();
+        title(slide, "PLANNING", "Your Financial Picture", "");
+        slide.addText(
+          "The full scope of planning we'll address together — well beyond the concentrated position.",
+          { x: 0.85, y: 1.42, w: 11.6, h: 0.3, fontSize: 10.5, color: C.text, margin: 0 }
+        );
+        const fpAreas = [
+          ["Cash & Liquidity", "• Emergency reserve\n• Discretionary income\n• Lines of credit\n• Near-term cash needs", C.goldPale],
+          ["Investments & Tax", "• Diversification plan\n• Tax-loss harvesting\n• Asset location\n• Withdrawal sequencing", C.tealPale],
+          ["Real Estate", "• Rental income analysis\n• 1031 exchange review\n• Cost segregation", C.bluePale],
+          ["Estate & Legacy", "• Estate documents & trusts\n• Beneficiary review\n• Charitable & legacy goals", C.coralPale],
+        ];
+        const fpX = [0.85, 3.80, 6.75, 9.70];
+        fpAreas.forEach((a, i) => card(slide, fpX[i], 2.05, 2.77, 4.2, a[0], a[1], a[2]));
+        footer(slide);
+      }
 
       // Removed assumptions slide.
 
