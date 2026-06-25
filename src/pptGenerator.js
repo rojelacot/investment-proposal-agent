@@ -436,9 +436,33 @@ export async function generatePowerPoint({
       }
 
 
-      function addSvg(slide, svg, x, y, w, h) {
-        const data = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
-        slide.addImage({ data, x, y, w, h });
+      // Renders SVG to a high-resolution PNG so PowerPoint doesn't blur it.
+      async function svgToPng(svg, wIn, hIn, scale = 3) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          const svgData = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width  = Math.round(wIn * 96 * scale);
+            canvas.height = Math.round(hIn * 96 * scale);
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/png"));
+          };
+          img.onerror = reject;
+          img.src = svgData;
+        });
+      }
+
+      async function addSvg(slide, svg, x, y, w, h) {
+        try {
+          const data = await svgToPng(svg, w, h);
+          slide.addImage({ data, x, y, w, h });
+        } catch {
+          // Fallback to raw SVG if PNG conversion fails
+          const data = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+          slide.addImage({ data, x, y, w, h });
+        }
       }
 
       function makeHarvestSvg(data) {
@@ -1043,7 +1067,7 @@ export async function generatePowerPoint({
         `${data.ticker} Concentration`
       );
 
-      addSvg(slide, donutSvg, 0.75, 1.78, 4.55, 4.55);
+      await addSvg(slide, donutSvg, 0.75, 1.78, 4.55, 4.55);
 
       slide.addShape(pptx.ShapeType.roundRect, {
         x: 6.05,
@@ -2231,7 +2255,7 @@ export async function generatePowerPoint({
       statBox(slide, 10.23, 1.88, 2.2, "Collar Downside Floor", collarFloor > 0 ? fmtM(collarFloor) : "N/A", C.white, C.navy);
 
       // Concentration chart (left) — 0.1" gap below stat boxes (end at 2.78)
-      addSvg(slide, makeConcentrationSvg(data), 0.55, 2.88, 6.6, 2.5);
+      await addSvg(slide, makeConcentrationSvg(data), 0.55, 2.88, 6.6, 2.5);
 
       // Right side: Before/After comparison table
       const compY = 2.88;
@@ -2310,7 +2334,7 @@ export async function generatePowerPoint({
         const newConc   = newInv > 0 ? ((remStock + collarAmt) / newInv * 100) : 0;
 
         // Stacked bar chart (left 7")
-        addSvg(slide, makeAfterPortfolioSvg(data, selectedStrategies), 0.55, 1.88, 7.0, 3.5);
+        await addSvg(slide, makeAfterPortfolioSvg(data, selectedStrategies), 0.55, 1.88, 7.0, 3.5);
 
         // Summary table (right)
         const tX = 7.8, tY = 1.88, tW = 4.7;
@@ -2722,7 +2746,7 @@ export async function generatePowerPoint({
 
         // Donut
         const overviewDonutSvg = makePortfolioDonutSvg(subGroupTotals);
-        addSvg(slide, overviewDonutSvg, 0.85, 2.95, 4.6, 3.85);
+        await addSvg(slide, overviewDonutSvg, 0.85, 2.95, 4.6, 3.85);
 
         // Fund table — right side
         const tblX      = 5.75;
@@ -3222,8 +3246,8 @@ export async function generatePowerPoint({
               const growthSvg = makeGrowth10kSvg(ts.growthSeries, cs?.growthSeries);
               const rrSvg = makeRiskReturnSvg(ts.annualizedVolatility, ts.annualizedReturn, cs?.annualizedVolatility, cs?.annualizedReturn);
 
-              if (growthSvg) addSvg(slide, growthSvg, 0.65, 1.88, 7.2, 4.3);
-              if (rrSvg)    addSvg(slide, rrSvg,     8.1, 1.88, 5.0, 3.8);
+              if (growthSvg) await addSvg(slide, growthSvg, 0.65, 1.88, 7.2, 4.3);
+              if (rrSvg)    await addSvg(slide, rrSvg,     8.1, 1.88, 5.0, 3.8);
 
               // Section labels
               slide.addText("GROWTH OF $10,000", { x: 0.65, y: 1.70, w: 4.0, h: 0.16, fontSize: 7, bold: true, color: C.blue, charSpace: 1.2, margin: 0 });
