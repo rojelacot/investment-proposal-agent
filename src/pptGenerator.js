@@ -838,11 +838,11 @@ export async function generatePowerPoint({
       // proof. (One full-width panel — airier, and avoids repeating the outcome
       // numbers in a second card.)
       slide.addShape(pptx.ShapeType.roundRect, { x: 0.85, y: 2.62, w: 11.62, h: 3.6, rectRadius: 0.08, fill: { color: C.white }, line: { color: C.border, width: 0.7 } });
-      slide.addShape(pptx.ShapeType.rect, { x: 0.85, y: 2.62, w: 0.07, h: 3.6, fill: { color: C.goldLight }, line: { color: C.goldLight } });
-      slide.addText("YOUR GOALS & OBJECTIVES", { x: 1.12, y: 2.86, w: 11.0, h: 0.2, fontSize: 8, bold: true, color: C.blue, charSpace: 1.3, margin: 0 });
-      slide.addShape(pptx.ShapeType.line, { x: 1.12, y: 3.2, w: 11.1, h: 0, line: { color: C.border, width: 0.6 } });
+      slide.addShape(pptx.ShapeType.roundRect, { x: 0.85, y: 2.62, w: 11.62, h: 0.4, rectRadius: 0.08, fill: { color: C.goldLight }, line: { color: C.goldLight } });
+      slide.addShape(pptx.ShapeType.rect, { x: 0.85, y: 2.90, w: 11.62, h: 0.12, fill: { color: C.goldLight }, line: { color: C.goldLight } });
+      slide.addText("YOUR GOALS & OBJECTIVES", { x: 1.05, y: 2.62, w: 11.22, h: 0.4, fontSize: 9, bold: true, color: C.white, charSpace: 1.3, align: "center", valign: "middle", margin: 0 });
       const goalBullets = overviewBullets.map(b => ({ text: b.text, options: { bullet: { type: "bullet" }, paraSpaceAfter: 13 } }));
-      slide.addText(goalBullets, { x: 1.12, y: 3.42, w: 11.1, h: 2.65, fontSize: 13, color: C.text, margin: 0, valign: "top" });
+      slide.addText(goalBullets, { x: 1.2, y: 3.28, w: 11.0, h: 2.8, fontSize: 13, color: C.text, margin: 0, valign: "top" });
 
       footer(slide);
 
