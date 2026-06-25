@@ -430,9 +430,34 @@ export async function generatePowerPoint({
       }
 
 
-      function addSvg(slide, svg, x, y, w, h) {
-        const data = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
-        slide.addImage({ data, x, y, w, h });
+      // Rasterize the SVG to a high-res PNG (3x) before embedding — PowerPoint
+      // renders raw embedded SVGs blurry. Falls back to the raw SVG if the
+      // canvas conversion isn't available.
+      async function svgToPng(svg, wIn, hIn, scale = 3) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          const svgData = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.round(wIn * 96 * scale);
+            canvas.height = Math.round(hIn * 96 * scale);
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/png"));
+          };
+          img.onerror = reject;
+          img.src = svgData;
+        });
+      }
+
+      async function addSvg(slide, svg, x, y, w, h) {
+        try {
+          const data = await svgToPng(svg, w, h);
+          slide.addImage({ data, x, y, w, h });
+        } catch {
+          const data = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+          slide.addImage({ data, x, y, w, h });
+        }
       }
 
       function makeHarvestSvg(data) {
@@ -970,7 +995,7 @@ export async function generatePowerPoint({
         }).join("");
         return `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"><rect width="500" height="500" fill="#FFFFFF"/>${segs}<circle cx="${cx}" cy="${cy}" r="${innerR - 3}" fill="#FFFFFF"/><text x="${cx}" y="${cy - 6}" text-anchor="middle" font-family="Georgia" font-size="38" font-weight="700" fill="#2E4A5A">${centerLabel}</text><text x="${cx}" y="${cy + 27}" text-anchor="middle" font-family="Inter, Arial" font-size="14" fill="#6E7E8A">${subLabel}</text></svg>`;
       }
-      addSvg(slide, makeTrueDonutSvg(
+      await addSvg(slide, makeTrueDonutSvg(
         breakdown,
         cpHasConc ? `${concentrationPct.toFixed(1)}%` : (cpHoldings ? `${cpTopPct.toFixed(1)}%` : "Mixed"),
         cpHasConc ? `${data.ticker} Concentration` : (cpHoldings ? "Largest Holding" : "Allocation")
@@ -2193,7 +2218,7 @@ export async function generatePowerPoint({
       statBox(slide, 10.27, 1.88, 2.2, "Collar Downside Floor", collarFloor > 0 ? fmtM(collarFloor) : "N/A", C.coralPale, C.coral);
 
       // Concentration chart (left) — 0.1" gap below stat boxes (end at 2.78)
-      addSvg(slide, makeConcentrationSvg(data), 0.85, 2.88, 6.4, 2.5);
+      await addSvg(slide, makeConcentrationSvg(data), 0.85, 2.88, 6.4, 2.5);
 
       // Right side: Before/After comparison table
       const compY = 2.88;
@@ -2272,7 +2297,7 @@ export async function generatePowerPoint({
         const newConc   = newInv > 0 ? ((remStock + collarAmt) / newInv * 100) : 0;
 
         // Stacked bar chart (left 7")
-        addSvg(slide, makeAfterPortfolioSvg(data, selectedStrategies), 0.55, 1.88, 7.0, 3.5);
+        await addSvg(slide, makeAfterPortfolioSvg(data, selectedStrategies), 0.55, 1.88, 7.0, 3.5);
 
         // Summary table (right)
         const tX = 7.8, tY = 1.88, tW = 4.7;
@@ -2681,7 +2706,7 @@ export async function generatePowerPoint({
 
         // Donut
         const overviewDonutSvg = makePortfolioDonutSvg(subGroupTotals);
-        addSvg(slide, overviewDonutSvg, 0.85, 2.95, 4.6, 3.85);
+        await addSvg(slide, overviewDonutSvg, 0.85, 2.95, 4.6, 3.85);
 
         // Fund table — right side
         const tblX      = 5.75;
@@ -3102,7 +3127,7 @@ export async function generatePowerPoint({
               const rrSvg = makeRiskReturnSvg(ts.annualizedVolatility, ts.annualizedReturn, cs?.annualizedVolatility, cs?.annualizedReturn);
 
               // Efficient frontier is now the centerpiece of this slide.
-              if (rrSvg) addSvg(slide, rrSvg, 3.9, 1.78, 5.55, 4.2);
+              if (rrSvg) await addSvg(slide, rrSvg, 3.9, 1.78, 5.55, 4.2);
 
               slide.addText("RISK / RETURN  ·  EFFICIENT FRONTIER", { x: 3.9, y: 1.60, w: 5.55, h: 0.16, fontSize: 7, bold: true, color: C.blue, charSpace: 1.2, margin: 0, align: "center" });
 
@@ -3259,7 +3284,7 @@ export async function generatePowerPoint({
                 </svg>`;
               }
               const fanSvg = makeFanSvg(mc.fan);
-              if (fanSvg) addSvg(slide, fanSvg, 0.85, 2.75, 11.6, 3.6);
+              if (fanSvg) await addSvg(slide, fanSvg, 0.85, 2.75, 11.6, 3.6);
 
               slide.addText(
                 "Illustrative Monte Carlo projection. Annual returns are drawn from a normal distribution using the recommended portfolio's historical mean and volatility; results are not a guarantee. The doubling probability is the share of simulated paths ending at or above twice the starting value. Past performance does not guarantee future results.",
