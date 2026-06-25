@@ -310,45 +310,15 @@ export async function generatePowerPoint({
         });
       }
 
-      // Per-strategy hero-metric chips, top-right of a strategy slide.
-      function impactTag(slide, ps) {
-        if (!ps) return;
-        const chips = [];
-        if (ps.taxSaved > 0) chips.push(["TAX SAVED", fmtK(ps.taxSaved), C.teal, C.tealPale]);
-        if (ps.downsideProtected > 0) chips.push(["DOWNSIDE PROTECTED", fmtK(ps.downsideProtected), C.blue, C.bluePale]);
-        if (!chips.length) return;
-        const cw = 2.05, gap = 0.15;
-        let cx = 12.47 - chips.length * cw - (chips.length - 1) * gap;
-        for (const [label, val, color, fill] of chips) {
-          slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: 0.5, w: cw, h: 0.66, rectRadius: 0.06, fill: { color: fill }, line: { color, width: 0.5 } });
-          slide.addText(val, { x: cx, y: 0.57, w: cw, h: 0.28, fontFace: "Georgia", fontSize: 14, bold: true, color, align: "center", margin: 0 });
-          slide.addText(label, { x: cx, y: 0.92, w: cw, h: 0.16, fontSize: 6, bold: true, color: C.muted, align: "center", charSpace: 0.5, margin: 0 });
-          cx += cw + gap;
-        }
-      }
 
       function footer(slide) {
         slide.addShape(pptx.ShapeType.line, {
           x: 0.55,
-          y: 6.82,
+          y: 6.92,
           w: 11.9,
           h: 0,
           line: { color: C.border, width: 0.55 },
         });
-
-        slide.addText(
-          "For discussion purposes only. Not legal, tax, or investment advice. Figures are illustrative estimates.",
-          {
-            x: 0.55,
-            y: 6.92,
-            w: 11.9,
-            h: 0.16,
-            fontSize: 6.4,
-            color: C.muted,
-            align: "center",
-            margin: 0,
-          }
-        );
       }
 
       function hCompare(slide, x, y, label, withoutVal, withVal, formatter, note = "") {
@@ -915,9 +885,7 @@ export async function generatePowerPoint({
         slide,
         "02 · WHERE ARE WE TODAY?",
         cpHasConc ? "Current Position" : "Portfolio Review",
-        cpHasConc
-          ? `Current portfolio position, concentration, and the key risk and tax considerations.`
-          : `A review of your current holdings, diversification, and tax efficiency.`
+        ""
       );
 
       // Headline numbers — standard 4-box grid (left margin 0.85, ends ~12.47)
@@ -1188,7 +1156,7 @@ export async function generatePowerPoint({
           slide,
           "THE OPPORTUNITY",
           "Tax You're Leaving on the Table",
-          `Selling ${data.ticker || "the position"} outright triggers a large one-time tax. A coordinated plan keeps more of your wealth working.`
+          ""
         );
 
         const netTax = Math.max(scorecard.immediateTax - scorecard.taxSaved, 0);
@@ -1234,7 +1202,6 @@ export async function generatePowerPoint({
         "Charitable Remainder Trust",
         `Contribute appreciated ${data.ticker} shares into a trust to reduce concentration, generate income, and support charitable goals.`
       );
-      impactTag(slide, scorecard.perStrategy.crt);
 
       // Stat boxes
       statBox(slide, 0.85, 1.78, 2.65, "Contribution", fmtM(data.crtAllocation), C.bluePale, C.blue);
@@ -1611,7 +1578,6 @@ export async function generatePowerPoint({
         "Enhanced Long/Short Leveraged Tax-Loss Harvesting Strategy",
         "Modest leverage and shorting can help create a more durable stream of harvested tax losses."
       );
-      impactTag(slide, scorecard.perStrategy.harvesting);
 
       // Dynamic 130/30 dollar amounts based on the client-specific harvesting sleeve
       const tlhLongCore = Number(data.harvestingSleeve || 0);
@@ -1963,7 +1929,6 @@ export async function generatePowerPoint({
         `Option Collar on ${data.ticker}`,
         ""
       );
-      impactTag(slide, scorecard.perStrategy.collar);
 
       slide.addText(
         "The payoff chart shows the collar structure: downside floor below the put, participation between the put and call, and capped upside above the call.",
@@ -2122,7 +2087,6 @@ export async function generatePowerPoint({
             `Phased Diversification of ${data.ticker || "the Concentrated Position"}`,
             ""
           );
-          impactTag(slide, scorecard.perStrategy.diversification);
 
           slide.addText(
             "Rather than a single taxable sale, the position is unwound over time within an annual capital-gains budget. After-tax proceeds are reinvested into the diversified portfolio until single-stock concentration falls to the target.",
@@ -2163,12 +2127,9 @@ export async function generatePowerPoint({
             margin: [2, 6, 2, 6],
           });
 
-          const budgetNote = gainsBudget
-            ? `realizing ~${fmtK(gainsBudget)} of gains per year`
-            : "selling ~20% of the original position per year";
           slide.addText(
-            `Assumptions: ${budgetNote}; ${pct(ltcgRate)} long-term capital-gains rate (incl. NIIT/state); 7.5% assumed annual growth; target concentration 10%. Selling the entire position today would instead realize ${fmtK(summary.immediateSaleTax)} of tax in a single year. Illustrative only — not tax advice; consult a tax professional.`,
-            { x: 0.85, y: 6.55, w: 11.6, h: 0.6, fontSize: 8, italic: true, color: C.muted, margin: 0 }
+            `Selling the entire position today would instead realize ${fmtK(summary.immediateSaleTax)} of tax in a single year.`,
+            { x: 0.85, y: 6.5, w: 11.6, h: 0.3, fontSize: 9, italic: true, color: C.muted, margin: 0 }
           );
 
           footer(slide);
@@ -2893,17 +2854,14 @@ export async function generatePowerPoint({
         const isSelectLiq2 = selectedConfig.label.includes("Select Liquidity");
         if (isSelectLiq2 || selectedPortfolioKey === "corePrivate") {
           const altFunds = realFunds.filter(f => f.group === "Alternatives");
-          const altBullets = altFunds.length > 0
-            ? altFunds.map(f => `• ${f.ticker !== "N/A" ? f.ticker : f.name.split(" ")[0]} — ${f.name}`).join("\n")
-            : "• See alternatives sleeve for detail";
-          card(slide, cardX, 5.18, cardW, 1.55,
-            "Alternative Holdings",
-            altBullets,
+          card(slide, cardX, 5.18, cardW, 1.1,
+            "Alternatives Sleeve",
+            `${altFunds.length} managers across private equity, real estate, private credit, and hedged equity — detailed in the allocation table.`,
             C.goldPale);
         } else {
           card(slide, cardX, 5.18, cardW, 0.85,
             "Implementation Note",
-            "• Validate against current firm model guidance\n• Confirm client-specific suitability before finalizing",
+            "Validate against current firm model guidance and confirm client-specific suitability before finalizing.",
             C.goldPale);
         }
 
@@ -3004,11 +2962,6 @@ export async function generatePowerPoint({
                 `• ${feeDelta <= 0 ? "Lower" : "Higher"} weighted fee: ${Math.abs(feeDelta).toFixed(2)}% ${feeDelta <= 0 ? "savings" : "increase"} vs. current portfolio`;
               card(slide, panelX1, panelY + panelH + 0.18, 11.6, 1.1, "Transition Summary", summaryBody, C.goldPale);
             }
-
-            slide.addText(
-              "Based on real historical monthly prices. For illustrative purposes only — past performance does not guarantee future results.",
-              { x: 0.85, y: 6.62, w: 11.6, h: 0.18, fontSize: 7, italic: true, color: C.muted, margin: 0, align: "center" }
-            );
 
             footer(slide);
 
@@ -3130,23 +3083,19 @@ export async function generatePowerPoint({
 
               // Key-stat strip — now includes the risk-adjusted Sharpe & Sortino
               // ratios (replacing the removed growth-of-$10,000 visuals).
-              const statY = 6.24;
+              const statY = 6.02;
               const nStats = c ? 6 : 3;
-              const statW = 11.6 / nStats;
-              const sx = i => 0.65 + statW * i;
-              statBox(slide, sx(0), statY, statW - 0.15, "Target CAGR",     pctF(ts.annualizedReturn), C.tealPale, C.teal);
-              statBox(slide, sx(1), statY, statW - 0.15, "Target Sharpe",   ratioF(ts.sharpeRatio),    C.white,    C.navy);
-              statBox(slide, sx(2), statY, statW - 0.15, "Target Sortino",  ratioF(ts.sortinoRatio),   C.white,    C.navy);
+              const statGap = 0.12;
+              const statW = (11.62 - (nStats - 1) * statGap) / nStats;
+              const sx = i => 0.85 + i * (statW + statGap);
+              statBox(slide, sx(0), statY, statW, "Target CAGR",     pctF(ts.annualizedReturn), C.tealPale, C.teal);
+              statBox(slide, sx(1), statY, statW, "Target Sharpe",   ratioF(ts.sharpeRatio),    C.white,    C.navy);
+              statBox(slide, sx(2), statY, statW, "Target Sortino",  ratioF(ts.sortinoRatio),   C.white,    C.navy);
               if (c) {
-                statBox(slide, sx(3), statY, statW - 0.15, "Current CAGR",    pctF(cs?.annualizedReturn), C.white,     C.navy);
-                statBox(slide, sx(4), statY, statW - 0.15, "Current Sharpe",  ratioF(cs?.sharpeRatio),    C.white,     C.navy);
-                statBox(slide, sx(5), statY, statW - 0.15, "Current Sortino", ratioF(cs?.sortinoRatio),   C.coralPale, C.coral);
+                statBox(slide, sx(3), statY, statW, "Current CAGR",    pctF(cs?.annualizedReturn), C.white,     C.navy);
+                statBox(slide, sx(4), statY, statW, "Current Sharpe",  ratioF(cs?.sharpeRatio),    C.white,     C.navy);
+                statBox(slide, sx(5), statY, statW, "Current Sortino", ratioF(cs?.sortinoRatio),   C.coralPale, C.coral);
               }
-
-              slide.addText(
-                "Based on real historical monthly prices. Sharpe and Sortino ratios use a 4% annual risk-free rate. Efficient frontier is a theoretical illustration only — not derived from mean-variance optimization. Past performance does not guarantee future results.",
-                { x: 0.65, y: 6.88, w: 11.6, h: 0.18, fontSize: 6.5, italic: true, color: C.muted, margin: 0, align: "center" }
-              );
 
               footer(slide);
             }
