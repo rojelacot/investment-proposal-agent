@@ -2120,11 +2120,11 @@ export async function generatePowerPoint({
           });
 
           slide.addTable([headerRow, ...bodyRows], {
-            x: 0.85, y: 2.62, w: 11.6,
+            x: 0.85, y: 2.7, w: 11.6,
             colW: [1.0, 1.75, 1.95, 1.85, 1.85, 2.0, 1.2],
-            rowH: 0.34,
+            rowH: shown.length <= 6 ? 0.46 : 0.34, // airier for typical (short) plans
             border: { type: "solid", color: C.border, pt: 0.5 },
-            margin: [2, 6, 2, 6],
+            margin: [4, 6, 4, 6],
           });
 
           slide.addText(
