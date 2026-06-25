@@ -801,18 +801,18 @@ export async function generatePowerPoint({
         fontSize: 8.5, color: "8A9AB5", margin: 0,
       });
 
-      // Right panel tagline
-      slide.addText("WEALTH STRATEGY", {
-        x: 8.1, y: 3.7, w: 4.5, h: 0.22,
-        fontSize: 10, color: C.goldLight, charSpace: 3.5, bold: true, align: "center", margin: 0,
+      // Right panel — firm brand block, vertically centered
+      slide.addText((firmName || "Meridian Wealth Partners").toUpperCase(), {
+        x: 8.1, y: 3.2, w: 4.5, h: 0.5,
+        fontFace: "Georgia", fontSize: 16, bold: true, color: C.white, charSpace: 1, align: "center", margin: 0, fit: "shrink",
       });
       slide.addShape(pptx.ShapeType.line, {
-        x: 9.4, y: 4.0, w: 1.9, h: 0,
-        line: { color: C.goldLight, width: 0.9 },
+        x: 9.55, y: 3.86, w: 1.6, h: 0,
+        line: { color: C.goldLight, width: 1.1 },
       });
       slide.addText("Tailored Planning · Disciplined Execution · Lasting Impact", {
-        x: 8.1, y: 4.18, w: 4.5, h: 0.18,
-        fontSize: 7.8, color: "8A9AB5", align: "center", margin: 0,
+        x: 8.1, y: 4.05, w: 4.5, h: 0.4,
+        fontSize: 8.2, color: "8A9AB5", align: "center", margin: 0,
       });
 
 
@@ -2194,26 +2194,17 @@ export async function generatePowerPoint({
       // Top row: 5 stat boxes — start at y:1.88 (clear of subtitle at y:1.78)
       const planConc = data.afterCrtConcentration || Math.max(data.concentration - 20, 10);
 
-      // Combined tax savings across all strategies
-      const taxRateFrac = (data.totalTaxRate || data.taxRate || 37.1) / 100;
-      const crtEmbeddedGain = (data.crtAllocation || 0) * (1 - (data.costBasisPct || 15) / 100);
-      const crtTaxAvoided   = crtEmbeddedGain * taxRateFrac;
-      const crtDeductionBenefit = ((data.charitableDeductionLow || 0) + (data.charitableDeductionHigh || 0)) / 2 * taxRateFrac;
-      const harvestingBenefit   = data.taxSavings || 0;
-      const totalTaxBenefit     = crtTaxAvoided + crtDeductionBenefit + harvestingBenefit;
-
       const annualIncome = (data.crtIncome || 0);
 
       // Collar floor and cap in dollars
       const collarFloor   = (data.collarAllocation || 0) * 0.85;  // minimum value (put protects here)
       const collarCap     = (data.collarAllocation || 0) * 1.19;  // maximum value (call caps here)
-      const downsideProtected = (data.collarAllocation || 0) - collarFloor; // max dollar loss avoided
 
-      statBox(slide, 0.85, 1.88, 2.2, "Starting Concentration", pct(data.concentration), C.coralPale, C.coral);
-      statBox(slide, 3.21, 1.88, 2.2, "Target Concentration", pct(planConc), C.tealPale, C.teal);
-      statBox(slide, 5.56, 1.88, 2.2, "Combined Tax Savings", fmtM(totalTaxBenefit), C.goldPale, C.gold);
-      statBox(slide, 7.91, 1.88, 2.2, "Annual Income (CRT)", annualIncome ? fmtK(annualIncome) : "N/A", C.bluePale, C.blue);
-      statBox(slide, 10.27, 1.88, 2.2, "Collar Downside Floor", collarFloor > 0 ? fmtM(collarFloor) : "N/A", C.white, C.navy);
+      statBox(slide, 0.85, 1.88, 2.2, "Tax Saved", fmtK(scorecard.taxSaved), C.tealPale, C.teal);
+      statBox(slide, 3.21, 1.88, 2.2, "Downside Protected", fmtK(scorecard.downsideProtected), C.bluePale, C.blue);
+      statBox(slide, 5.56, 1.88, 2.2, "Concentration After Plan", pct(planConc), C.goldPale, C.gold);
+      statBox(slide, 7.91, 1.88, 2.2, "Annual Income (CRT)", annualIncome ? fmtK(annualIncome) : "N/A", C.white, C.navy);
+      statBox(slide, 10.27, 1.88, 2.2, "Collar Downside Floor", collarFloor > 0 ? fmtM(collarFloor) : "N/A", C.coralPale, C.coral);
 
       // Concentration chart (left) — 0.1" gap below stat boxes (end at 2.78)
       addSvg(slide, makeConcentrationSvg(data), 0.85, 2.88, 6.4, 2.5);
@@ -2231,9 +2222,9 @@ export async function generatePowerPoint({
 
       const compRows = [
         ["Concentration", pct(data.concentration), pct(planConc)],
-        ["Combined Tax Savings", "—", fmtM(totalTaxBenefit)],
+        ["Tax Saved", "—", fmtK(scorecard.taxSaved)],
+        ["Downside Protected", "—", fmtK(scorecard.downsideProtected)],
         ["Annual CRT Income", "—", annualIncome ? fmtK(annualIncome) : "—"],
-        ["Collar Floor / Cap", "—", collarFloor > 0 ? `${fmtM(collarFloor)} / ${fmtM(collarCap)}` : "—"],
       ];
 
       compRows.forEach((row, i) => {
@@ -4295,16 +4286,16 @@ export async function generatePowerPoint({
       title(
         slide,
         "NEXT STEPS",
-        "Suggested Next Steps",
-        "Recommended follow-up items before final implementation."
+        "How We'll Move Forward Together",
+        "A clear path from this conversation to a fully implemented plan."
       );
 
       const finalSteps = [
-        ["1", "Confirm client facts", "Validate goals, risk profile, time horizon, liquidity needs, and extracted financial data."],
-        ["2", "Finalize module selections", "Confirm which planning modules and strategy sections should remain in the final proposal."],
-        ["3", "Review with specialists", "Coordinate tax, legal, estate, options, and portfolio implementation review as needed."],
-        ["4", "Approve action plan", "Confirm recommended portfolio strategy, allocation profile, and implementation sequencing."],
-        ["5", "Prepare final proposal", "Generate the final Word document and PowerPoint for client presentation."],
+        ["1", "Confirm your goals", "Align on your objectives, risk tolerance, time horizon, and liquidity needs."],
+        ["2", "Approve the plan", "Choose the strategies and allocation you'd like to move forward with."],
+        ["3", "Coordinate your advisors", "We work alongside your tax, legal, and estate professionals to align every detail."],
+        ["4", "Begin implementation", "Establish the accounts and structures and execute in a tax-aware sequence."],
+        ["5", "Ongoing partnership", "Regular reviews to monitor progress, taxes, income, and performance."],
       ];
 
       finalSteps.forEach((item, i) => {
