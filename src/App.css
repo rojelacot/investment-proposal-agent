@@ -964,6 +964,242 @@ button:disabled {
   box-shadow: 0 0 0 4px rgba(26, 39, 68, 0.08);
 }
 
+/* ── Risk Questionnaire ────────────────────────────────────────────────── */
+
+.risk-questionnaire {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rq-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.rq-icon {
+  font-size: 28px;
+  line-height: 1;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.rq-header h3 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18px;
+  color: var(--navy);
+  margin: 0 0 4px;
+}
+
+.rq-header p {
+  font-size: 13px;
+  color: var(--gray-mid);
+  margin: 0;
+}
+
+.rq-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rq-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--gray-mid);
+  font-weight: 500;
+}
+
+.rq-progress-track {
+  height: 6px;
+  background: #e5e9f0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.rq-progress-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 99px;
+  transition: width 0.35s ease;
+}
+
+.rq-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rq-card {
+  border: 1.5px solid #dde3ef;
+  border-radius: 10px;
+  padding: 18px 20px;
+  background: #fff;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.rq-card--answered {
+  border-color: var(--gold);
+  background: #fffdf5;
+}
+
+.rq-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.rq-num {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.rq-card--answered .rq-num {
+  background: var(--gold);
+  color: var(--navy);
+}
+
+.rq-category {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 3px;
+}
+
+.rq-question {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.45;
+}
+
+.rq-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rq-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1.5px solid #dde3ef;
+  border-radius: 7px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  width: 100%;
+}
+
+.rq-option:hover {
+  border-color: #c4a94f;
+  background: #fefbf0;
+}
+
+.rq-option--selected {
+  border-color: var(--gold);
+  background: #fff8e1;
+}
+
+.rq-opt-letter {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  border: 1.5px solid #c0c8d8;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-mid);
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.rq-option--selected .rq-opt-letter {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--navy);
+}
+
+.rq-opt-label {
+  font-size: 13px;
+  color: #2d3748;
+  line-height: 1.4;
+}
+
+.rq-result {
+  border: 2px solid var(--gold);
+  border-radius: 10px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #fffbee 0%, #fff8dc 100%);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.rq-result-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.rq-result-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.rq-result-desc {
+  font-size: 13px;
+  color: #4a5568;
+  max-width: 480px;
+  line-height: 1.55;
+  margin-top: 2px;
+}
+
+.rq-reset-btn {
+  margin-top: 10px;
+  background: none;
+  border: 1.5px solid #c0c8d8;
+  border-radius: 6px;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-mid);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.rq-reset-btn:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+}
+
 /* ── Responsive ────────────────────────────────────────────────────────── */
 
 @media (max-width: 980px) {

@@ -13,6 +13,7 @@ import { detectMissingInfo } from "./clarifyingQuestions";
 import MissingInfoPanel from "./MissingInfoPanel";
 import { recomputeReviewedData, getProposalQuality } from "./proposalUpgrades";
 import FileUploadBox from "./FileUploadBox";
+import RiskQuestionnaire from "./RiskQuestionnaire";
 import { safeExtractClientData, parseHoldingsFromText } from "./safeClientExtraction";
 import { fmtM, fmtK, pct } from "./formatters";
 import { generatePowerPoint } from "./pptGenerator";
@@ -2197,6 +2198,12 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
           />
 
           <button onClick={runAgent}>Run Agent</button>
+        </section>
+        )}
+
+        {!reviewData && !proposal && clarifyingQuestions.length === 0 && (
+        <section className="card">
+          <RiskQuestionnaire onProfile={(profileKey) => setSelectedRiskProfile(profileKey)} />
         </section>
         )}
 
