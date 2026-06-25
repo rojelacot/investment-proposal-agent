@@ -825,10 +825,10 @@ export async function generatePowerPoint({
         ""
       );
 
-      statBox(slide, 0.8, 1.38, 2.55, "Concentrated Position", fmtM(data.stockPosition), C.coralPale, C.coral);
-      statBox(slide, 3.65, 1.38, 2.55, "Current Concentration", pct(data.concentration), C.goldPale, C.gold);
-      statBox(slide, 6.5, 1.38, 2.55, "Tax If Fully Sold", fmtM(data.immediateTax), C.bluePale, C.blue);
-      statBox(slide, 9.35, 1.38, 2.55, "After CRT Concentration", pct(data.afterCrtConcentration), C.tealPale, C.teal);
+      statBox(slide, 0.85, 1.38, 2.77, "Concentrated Position", fmtM(data.stockPosition), C.coralPale, C.coral);
+      statBox(slide, 3.80, 1.38, 2.77, "Current Concentration", pct(data.concentration), C.goldPale, C.gold);
+      statBox(slide, 6.75, 1.38, 2.77, "Tax If Fully Sold", fmtM(data.immediateTax), C.bluePale, C.blue);
+      statBox(slide, 9.70, 1.38, 2.77, "After CRT Concentration", pct(data.afterCrtConcentration), C.tealPale, C.teal);
 
       // Dynamic goal bullets based on selected strategies
       const bOpts = { bullet: { type: "bullet" }, paraSpaceAfter: 6 };
@@ -2199,14 +2199,14 @@ export async function generatePowerPoint({
       const collarCap     = (data.collarAllocation || 0) * 1.19;  // maximum value (call caps here)
       const downsideProtected = (data.collarAllocation || 0) - collarFloor; // max dollar loss avoided
 
-      statBox(slide, 0.55, 1.88, 2.2, "Starting Concentration", pct(data.concentration), C.coralPale, C.coral);
-      statBox(slide, 2.97, 1.88, 2.2, "Target Concentration", pct(planConc), C.tealPale, C.teal);
-      statBox(slide, 5.39, 1.88, 2.2, "Combined Tax Savings", fmtM(totalTaxBenefit), C.goldPale, C.gold);
-      statBox(slide, 7.81, 1.88, 2.2, "Annual Income (CRT)", annualIncome ? fmtK(annualIncome) : "N/A", C.bluePale, C.blue);
-      statBox(slide, 10.23, 1.88, 2.2, "Collar Downside Floor", collarFloor > 0 ? fmtM(collarFloor) : "N/A", C.white, C.navy);
+      statBox(slide, 0.85, 1.88, 2.2, "Starting Concentration", pct(data.concentration), C.coralPale, C.coral);
+      statBox(slide, 3.21, 1.88, 2.2, "Target Concentration", pct(planConc), C.tealPale, C.teal);
+      statBox(slide, 5.56, 1.88, 2.2, "Combined Tax Savings", fmtM(totalTaxBenefit), C.goldPale, C.gold);
+      statBox(slide, 7.91, 1.88, 2.2, "Annual Income (CRT)", annualIncome ? fmtK(annualIncome) : "N/A", C.bluePale, C.blue);
+      statBox(slide, 10.27, 1.88, 2.2, "Collar Downside Floor", collarFloor > 0 ? fmtM(collarFloor) : "N/A", C.white, C.navy);
 
       // Concentration chart (left) — 0.1" gap below stat boxes (end at 2.78)
-      addSvg(slide, makeConcentrationSvg(data), 0.55, 2.88, 6.6, 2.5);
+      addSvg(slide, makeConcentrationSvg(data), 0.85, 2.88, 6.4, 2.5);
 
       // Right side: Before/After comparison table
       const compY = 2.88;
@@ -2257,7 +2257,7 @@ export async function generatePowerPoint({
       ];
 
       impactCards.forEach((ic, i) => {
-        const icx = 0.55 + i * 3.93;
+        const icx = 0.85 + i * 3.93;
         slide.addShape(pptx.ShapeType.roundRect, { x: icx, y: 5.55, w: 3.73, h: 0.9, rectRadius: 0.07, fill: { color: ic.fill }, line: { color: C.border, width: 0.6 } });
         slide.addShape(pptx.ShapeType.rect, { x: icx, y: 5.55, w: 0.06, h: 0.9, fill: { color: ic.color }, line: { color: ic.color } });
         slide.addText(ic.title, { x: icx + 0.18, y: 5.60, w: 3.35, h: 0.18, fontSize: 8.5, bold: true, color: ic.color, margin: 0 });
@@ -3544,7 +3544,7 @@ export async function generatePowerPoint({
           const riskNumColor   = riskNumber != null ? C.navy : C.muted;
           const riskNumFill    = riskNumber != null ? C.white : "F5F6F8";
 
-          statBox(slide, 0.55, 1.88, 2.6,  "Client Risk Number",  riskNumDisplay,      riskNumFill, riskNumColor);
+          statBox(slide, 0.85, 1.88, 2.6,  "Client Risk Number",  riskNumDisplay,      riskNumFill, riskNumColor);
           statBox(slide, 3.35, 1.88, 2.6,  "Recommended Profile", selectedRP.label,    C.goldPale,  C.gold);
           statBox(slide, 6.15, 1.88, 2.6,  "Equity / Fixed",      `${selectedRP.equity} / ${selectedRP.fi}`, C.bluePale, C.blue);
           statBox(slide, 8.95, 1.88, 2.6,  "Concentration",       pct(currentConc),    currentConc > 50 ? C.coralPale : C.tealPale, currentConc > 50 ? C.coral : C.teal);
@@ -3552,15 +3552,15 @@ export async function generatePowerPoint({
           // Risk-number footnote (only when not on file)
           if (riskNumber == null) {
             slide.addText("* Request Nitrogen / Riskalyze score from advisor if available.", {
-              x: 0.55, y: 2.84, w: 7.0, h: 0.16,
+              x: 0.85, y: 2.84, w: 7.0, h: 0.16,
               fontSize: 7.5, color: C.muted, italic: true, margin: 0,
             });
           }
 
           // Risk spectrum — starts at y:3.08
-          slide.addText("RISK SPECTRUM", { x: 0.55, y: 3.08, w: 3, h: 0.16, fontSize: 7, bold: true, color: C.blue, charSpace: 1.2, margin: 0 });
+          slide.addText("RISK SPECTRUM", { x: 0.85, y: 3.08, w: 3, h: 0.16, fontSize: 7, bold: true, color: C.blue, charSpace: 1.2, margin: 0 });
           riskProfiles.forEach((rp, i) => {
-            const sx = 0.55 + i * 1.53;
+            const sx = 0.85 + i * 1.53;
             const isSelected = rp.key === selectedRiskProfile;
             slide.addShape(pptx.ShapeType.roundRect, {
               x: sx, y: 3.28, w: 1.43, h: isSelected ? 0.54 : 0.44,
@@ -3581,8 +3581,8 @@ export async function generatePowerPoint({
           const upside20   = cleanNumber(data.investableAssets) * 0.2 * (selectedRP.equity / 100);
 
           // Downside
-          slide.addShape(pptx.ShapeType.roundRect, { x: 0.55, y: 4.08, w: 5.8, h: 1.72, rectRadius: 0.08, fill: { color: C.coralPale }, line: { color: C.coral, width: 0.7 } });
-          slide.addShape(pptx.ShapeType.rect,      { x: 0.55, y: 4.08, w: 0.06, h: 1.72, fill: { color: C.coral }, line: { color: C.coral } });
+          slide.addShape(pptx.ShapeType.roundRect, { x: 0.85, y: 4.08, w: 5.8, h: 1.72, rectRadius: 0.08, fill: { color: C.coralPale }, line: { color: C.coral, width: 0.7 } });
+          slide.addShape(pptx.ShapeType.rect,      { x: 0.85, y: 4.08, w: 0.06, h: 1.72, fill: { color: C.coral }, line: { color: C.coral } });
           slide.addText("DOWNSIDE  —  30% EQUITY DECLINE", { x: 0.75, y: 4.18, w: 5.4, h: 0.18, fontSize: 7.5, bold: true, color: C.coral, charSpace: 0.8, margin: 0 });
           slide.addText(`~(${fmtM(downside30)}) estimated impact`, { x: 0.75, y: 4.42, w: 5.4, h: 0.26, fontFace: "Georgia", fontSize: 16, bold: true, color: C.coral, margin: 0 });
           slide.addText([
@@ -3605,7 +3605,7 @@ export async function generatePowerPoint({
             riskNumber != null
               ? `Risk Number ${riskNumber} → ${selectedRP.label} (${selectedRP.equity}/${selectedRP.fi}).  Concentration at ${pct(currentConc)} adds above-model volatility until diversification plan executes.`
               : `${selectedRP.label} profile (${selectedRP.equity}/${selectedRP.fi}) selected based on risk language, time horizon, and planning objectives.  Concentration at ${pct(currentConc)} adds above-model volatility.`,
-            { x: 0.55, y: 5.88, w: 11.95, h: 0.22, fontSize: 8.5, color: C.muted, margin: 0, fit: "shrink" }
+            { x: 0.85, y: 5.88, w: 11.95, h: 0.22, fontSize: 8.5, color: C.muted, margin: 0, fit: "shrink" }
           );
 
           footer(slide);
