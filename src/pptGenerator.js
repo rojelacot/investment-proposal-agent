@@ -857,13 +857,22 @@ export async function generatePowerPoint({
           { x: 0.85, y: 1.42, w: 11.6, h: 0.3, fontSize: 10.5, color: C.text, margin: 0 }
         );
         const fpAreas = [
-          ["Cash & Liquidity", "• Emergency reserve\n• Discretionary income\n• Lines of credit\n• Near-term cash needs", C.goldPale],
-          ["Investments & Tax", "• Diversification plan\n• Tax-loss harvesting\n• Asset location\n• Withdrawal sequencing", C.tealPale],
-          ["Real Estate", "• Rental income analysis\n• 1031 exchange review\n• Cost segregation", C.bluePale],
-          ["Estate & Legacy", "• Estate documents & trusts\n• Beneficiary review\n• Charitable & legacy goals", C.coralPale],
+          ["Cash & Liquidity", ["Emergency reserve", "Discretionary income", "Lines of credit", "Near-term cash needs"], C.goldPale],
+          ["Investments & Tax", ["Diversification plan", "Tax-loss harvesting", "Asset location", "Withdrawal sequencing"], C.tealPale],
+          ["Real Estate", ["Rental income analysis", "1031 exchange review", "Cost segregation"], C.bluePale],
+          ["Estate & Legacy", ["Estate documents & trusts", "Beneficiary review", "Charitable & legacy goals"], C.coralPale],
         ];
         const fpX = [0.85, 3.80, 6.75, 9.70];
-        fpAreas.forEach((a, i) => card(slide, fpX[i], 2.05, 2.77, 4.2, a[0], a[1], a[2]));
+        const fpY = 2.25, fpH = 3.2, fpBh = 0.5, fpW = 2.77;
+        fpAreas.forEach((a, i) => {
+          const cx = fpX[i];
+          slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: fpY, w: fpW, h: fpH, rectRadius: 0.1, fill: { color: a[2] }, line: { color: C.border, width: 0.7 } });
+          slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: fpY, w: fpW, h: fpBh, rectRadius: 0.1, fill: { color: C.goldLight }, line: { color: C.goldLight } });
+          slide.addShape(pptx.ShapeType.rect, { x: cx, y: fpY + fpBh - 0.14, w: fpW, h: 0.14, fill: { color: C.goldLight }, line: { color: C.goldLight } });
+          slide.addText(a[0], { x: cx + 0.1, y: fpY, w: fpW - 0.2, h: fpBh, fontSize: 12.5, bold: true, color: C.white, align: "center", valign: "middle", margin: 0, fit: "shrink" });
+          const items = a[1].map(t => ({ text: t, options: { bullet: { type: "bullet" }, paraSpaceAfter: 22, color: C.text, fontSize: 14.5 } }));
+          slide.addText(items, { x: cx + 0.26, y: fpY + fpBh + 0.28, w: fpW - 0.46, h: fpH - fpBh - 0.5, color: C.text, valign: "top", margin: 0 });
+        });
         footer(slide);
       }
 
@@ -880,10 +889,10 @@ export async function generatePowerPoint({
         const pcW = 3.67, pcGap = 0.30;
         pillars.forEach((p, i) => {
           const cx = 0.85 + i * (pcW + pcGap);
-          slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: 1.75, w: pcW, h: 0.72, rectRadius: 0.1, fill: { color: C.goldLight }, line: { color: C.goldLight } });
-          slide.addText(p[0], { x: cx + 0.12, y: 1.75, w: pcW - 0.24, h: 0.72, fontSize: 13, bold: true, color: C.white, align: "center", valign: "middle", margin: 0, fit: "shrink" });
-          const items = p[1].map(t => ({ text: t, options: { align: "center", paraSpaceAfter: 16, color: C.text, fontSize: 11.5 } }));
-          slide.addText(items, { x: cx + 0.12, y: 2.85, w: pcW - 0.24, h: 3.4, color: C.text, align: "center", valign: "top", margin: 0 });
+          slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: 1.9, w: pcW, h: 0.8, rectRadius: 0.1, fill: { color: C.goldLight }, line: { color: C.goldLight } });
+          slide.addText(p[0], { x: cx + 0.12, y: 1.9, w: pcW - 0.24, h: 0.8, fontSize: 15, bold: true, color: C.white, align: "center", valign: "middle", margin: 0, fit: "shrink" });
+          const items = p[1].map(t => ({ text: t, options: { align: "center", paraSpaceAfter: 26, color: C.text, fontSize: 14.5 } }));
+          slide.addText(items, { x: cx + 0.12, y: 3.2, w: pcW - 0.24, h: 3.2, color: C.text, align: "center", valign: "top", margin: 0 });
         });
         footer(slide);
       }
