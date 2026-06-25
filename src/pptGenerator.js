@@ -733,8 +733,8 @@ export async function generatePowerPoint({
         y: 0,
         w: 5.93,
         h: 7.5,
-        fill: { color: C.navy2 },
-        line: { color: C.navy2 },
+        fill: { color: C.navy },
+        line: { color: C.navy },
       });
 
       slide.addText("CONFIDENTIAL · PREPARED EXCLUSIVELY FOR", {
@@ -796,19 +796,6 @@ export async function generatePowerPoint({
         fontSize: 8.5, color: "8A9AB5", margin: 0,
       });
 
-      // Right panel tagline
-      slide.addText("WEALTH STRATEGY", {
-        x: 8.1, y: 3.7, w: 4.5, h: 0.22,
-        fontSize: 10, color: C.goldLight, charSpace: 3.5, bold: true, align: "center", margin: 0,
-      });
-      slide.addShape(pptx.ShapeType.line, {
-        x: 9.4, y: 4.0, w: 1.9, h: 0,
-        line: { color: C.goldLight, width: 0.9 },
-      });
-      slide.addText("Tailored Planning · Disciplined Execution · Lasting Impact", {
-        x: 8.1, y: 4.18, w: 4.5, h: 0.18,
-        fontSize: 7.8, color: "8A9AB5", align: "center", margin: 0,
-      });
 
 
       // Slide 2 Overview
