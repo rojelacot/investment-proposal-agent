@@ -896,17 +896,28 @@ export async function generatePowerPoint({
 
       // Slide 3 — Where Are We Today (current position + portfolio mix, merged)
       slide = pptx.addSlide();
+      // Adapt to the client: concentrated position vs. an already-diversified
+      // portfolio that just needs a review/advisor.
+      const cpHasConc = Number(data.stockPosition) > 0;
+      const cpHoldings = Array.isArray(data.currentHoldings) && data.currentHoldings.length >= 2 ? data.currentHoldings : null;
+      const cpTopPct = cpHoldings ? Math.max(...cpHoldings.map(h => Number(h.pct) || 0)) : 0;
       title(
         slide,
         "02 · WHERE ARE WE TODAY?",
-        "Current Position",
-        `Current portfolio position, concentration, and the key risk and tax considerations.`
+        cpHasConc ? "Current Position" : "Portfolio Review",
+        cpHasConc
+          ? `Current portfolio position, concentration, and the key risk and tax considerations.`
+          : `A review of your current holdings, diversification, and tax efficiency.`
       );
 
       // Headline numbers — standard 4-box grid (left margin 0.85, ends ~12.47)
       statBox(slide, 0.85, 1.45, 2.77, "Total Net Worth", fmtM(data.netWorth), C.goldPale, C.gold);
       statBox(slide, 3.80, 1.45, 2.77, "Investable Assets", fmtM(data.investableAssets), C.white, C.navy);
-      statBox(slide, 6.75, 1.45, 2.77, data.ticker ? `${data.ticker} Position` : "Concentrated Position", data.stockPosition > 0 ? fmtM(data.stockPosition) : "None", data.stockPosition > 0 ? C.coralPale : C.white, data.stockPosition > 0 ? C.coral : C.muted);
+      statBox(slide, 6.75, 1.45, 2.77,
+        cpHasConc ? `${data.ticker} Position` : (cpHoldings ? "Largest Holding" : "Portfolio"),
+        cpHasConc ? fmtM(data.stockPosition) : (cpHoldings ? pct(cpTopPct) : "Diversified"),
+        cpHasConc ? C.coralPale : C.tealPale,
+        cpHasConc ? C.coral : C.teal);
       statBox(slide, 9.70, 1.45, 2.77, "Annual Income", data.income ? fmtM(data.income) : "N/A", C.tealPale, C.teal);
 
       // ── Concentration donut + breakdown (merged from the former mix slide) ──
@@ -915,13 +926,23 @@ export async function generatePowerPoint({
       const chartOther = Math.max(chartInvestable - chartStock, 0);
       const concentrationPct = chartInvestable > 0 ? (chartStock / chartInvestable) * 100 : 0;
 
-      const breakdown = [
-        { label: `${data.ticker} Position`, value: chartStock, color: "#2E4A5A" },
-        { label: "Diversified Equities", value: chartOther * 0.40, color: "#F48B1F" },
-        { label: "Fixed Income", value: chartOther * 0.30, color: "#97BC7A" },
-        { label: "Cash / Liquidity", value: chartOther * 0.20, color: "#4D738A" },
-        { label: "Alternatives", value: chartOther * 0.10, color: "#C7CED6" },
-      ].map((item) => ({ ...item, pct: chartInvestable > 0 ? (item.value / chartInvestable) * 100 : 0 }));
+      const cpPalette = ["#2E4A5A", "#F48B1F", "#97BC7A", "#4D738A", "#C7CED6"];
+      const breakdownRaw = cpHoldings
+        ? (() => {
+            const sorted = [...cpHoldings].sort((a, b) => (Number(b.pct) || 0) - (Number(a.pct) || 0));
+            const rows = sorted.slice(0, 4).map((h, i) => ({ label: h.ticker, value: chartInvestable * (Number(h.pct) || 0) / 100, color: cpPalette[i] }));
+            const otherPct = sorted.slice(4).reduce((s, h) => s + (Number(h.pct) || 0), 0);
+            if (otherPct > 0.01) rows.push({ label: "Other Holdings", value: chartInvestable * otherPct / 100, color: cpPalette[4] });
+            return rows;
+          })()
+        : [
+            { label: `${data.ticker} Position`, value: chartStock, color: cpPalette[0] },
+            { label: "Diversified Equities", value: chartOther * 0.40, color: cpPalette[1] },
+            { label: "Fixed Income", value: chartOther * 0.30, color: cpPalette[2] },
+            { label: "Cash / Liquidity", value: chartOther * 0.20, color: cpPalette[3] },
+            { label: "Alternatives", value: chartOther * 0.10, color: cpPalette[4] },
+          ];
+      const breakdown = breakdownRaw.map((item) => ({ ...item, pct: chartInvestable > 0 ? (item.value / chartInvestable) * 100 : 0 }));
 
       function polarToCartesian(cx, cy, r, angleDeg) {
         const angleRad = (angleDeg - 90) * Math.PI / 180.0;
@@ -946,7 +967,11 @@ export async function generatePowerPoint({
         }).join("");
         return `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"><rect width="500" height="500" fill="#FFFFFF"/>${segs}<circle cx="${cx}" cy="${cy}" r="${innerR - 3}" fill="#FFFFFF"/><text x="${cx}" y="${cy - 6}" text-anchor="middle" font-family="Georgia" font-size="38" font-weight="700" fill="#2E4A5A">${centerLabel}</text><text x="${cx}" y="${cy + 27}" text-anchor="middle" font-family="Inter, Arial" font-size="14" fill="#6E7E8A">${subLabel}</text></svg>`;
       }
-      addSvg(slide, makeTrueDonutSvg(breakdown, `${concentrationPct.toFixed(1)}%`, `${data.ticker} Concentration`), 0.85, 2.55, 3.7, 3.7);
+      addSvg(slide, makeTrueDonutSvg(
+        breakdown,
+        cpHasConc ? `${concentrationPct.toFixed(1)}%` : (cpHoldings ? `${cpTopPct.toFixed(1)}%` : "Mixed"),
+        cpHasConc ? `${data.ticker} Concentration` : (cpHoldings ? "Largest Holding" : "Allocation")
+      ), 0.85, 2.55, 3.7, 3.7);
 
       // Breakdown table
       slide.addShape(pptx.ShapeType.roundRect, { x: 4.75, y: 2.62, w: 3.3, h: 3.55, rectRadius: 0.08, fill: { color: C.white }, line: { color: C.border, width: 0.8 } });
@@ -966,11 +991,16 @@ export async function generatePowerPoint({
       card(
         slide,
         8.25, 2.62, 4.22, 3.55,
-        "Key Risks & Tax Exposure",
-        `• 40% drawdown in ${data.ticker} ≈ ${fmtM(data.drawdown40Impact)} loss\n` +
-        `• Single-stock concentration risk until diversification executes\n` +
-        `• ~${fmtM(data.immediateTax)} tax if sold outright today (${pct(data.taxRate)} combined)\n` +
-        `• Goal: reduce concentration without a forced tax event`,
+        cpHasConc ? "Key Risks & Tax Exposure" : "Portfolio Review & Opportunities",
+        cpHasConc
+          ? `• 40% drawdown in ${data.ticker} ≈ ${fmtM(data.drawdown40Impact)} loss\n` +
+            `• Single-stock concentration risk until diversification executes\n` +
+            `• ~${fmtM(data.immediateTax)} tax if sold outright today (${pct(data.taxRate)} combined)\n` +
+            `• Goal: reduce concentration without a forced tax event`
+          : `• Diversified — largest position ${cpHoldings ? pct(cpTopPct) : "under review"}\n` +
+            `• Tax efficiency: direct-indexing tax-loss harvesting can offset gains and lower your tax bill\n` +
+            `• Align the allocation to your goals and reduce fund fees\n` +
+            `• Ongoing advice: rebalancing, tax management, and regular review`,
         C.white
       );
 
