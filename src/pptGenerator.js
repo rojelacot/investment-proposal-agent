@@ -8,6 +8,7 @@ import { buildExitSchedule } from "./concentratedExit";
 import { compareFeeDrag } from "./feeProjection";
 import { runMonteCarlo } from "./monteCarlo";
 import { stressTest } from "./stressTest";
+import { computeImpactScorecard } from "./impactScorecard";
 
 async function loadSvgDataUri(publicPath) {
   const response = await fetch(publicPath);
@@ -79,6 +80,10 @@ export async function generatePowerPoint({
     aggressive: "Aggressive — 100/0",
   };
   const riskProfileLabel = RISK_LABEL_MAP[selectedRiskProfile] || "Review";
+
+  // Hero metrics (Tax Saved / Downside Protected) for the "Tax You're Leaving
+  // on the Table" slide and the per-strategy scorecard tags.
+  const scorecard = computeImpactScorecard({ data, selectedStrategies });
 
   const selectedPortfolioStrategyLabel = (() => {
     const PORTFOLIO_LABEL_MAP = {
@@ -303,6 +308,23 @@ export async function generatePowerPoint({
           margin: 0,
           breakLine: false,
         });
+      }
+
+      // Per-strategy hero-metric chips, top-right of a strategy slide.
+      function impactTag(slide, ps) {
+        if (!ps) return;
+        const chips = [];
+        if (ps.taxSaved > 0) chips.push(["TAX SAVED", fmtK(ps.taxSaved), C.teal, C.tealPale]);
+        if (ps.downsideProtected > 0) chips.push(["DOWNSIDE PROTECTED", fmtK(ps.downsideProtected), C.blue, C.bluePale]);
+        if (!chips.length) return;
+        const cw = 2.05, gap = 0.15;
+        let cx = 12.47 - chips.length * cw - (chips.length - 1) * gap;
+        for (const [label, val, color, fill] of chips) {
+          slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: 0.5, w: cw, h: 0.66, rectRadius: 0.06, fill: { color: fill }, line: { color, width: 0.5 } });
+          slide.addText(val, { x: cx, y: 0.57, w: cw, h: 0.28, fontFace: "Georgia", fontSize: 14, bold: true, color, align: "center", margin: 0 });
+          slide.addText(label, { x: cx, y: 0.92, w: cw, h: 0.16, fontSize: 6, bold: true, color: C.muted, align: "center", charSpace: 0.5, margin: 0 });
+          cx += cw + gap;
+        }
       }
 
       function footer(slide) {
@@ -1117,6 +1139,49 @@ export async function generatePowerPoint({
 
       footer(slide);
 
+      // ── HERO: TAX YOU'RE LEAVING ON THE TABLE ────────────────────────────
+      // One-page value demonstration: the one-time tax of a naive sale vs. what
+      // the coordinated plan saves + the downside it removes.
+      if (modules.taxOnTheTable !== false && scorecard.immediateTax > 0) {
+        slide = pptx.addSlide();
+        title(
+          slide,
+          "THE OPPORTUNITY",
+          "Tax You're Leaving on the Table",
+          `Selling ${data.ticker || "the position"} outright triggers a large one-time tax. A coordinated plan keeps more of your wealth working.`
+        );
+
+        const netTax = Math.max(scorecard.immediateTax - scorecard.taxSaved, 0);
+        statBox(slide, 0.85, 1.55, 2.77, "Tax If Sold Outright", fmtK(scorecard.immediateTax), C.coralPale, C.coral);
+        statBox(slide, 3.80, 1.55, 2.77, "Tax Saved With Our Plan", fmtK(scorecard.taxSaved), C.tealPale, C.teal);
+        statBox(slide, 6.75, 1.55, 2.77, "Downside Protected", fmtK(scorecard.downsideProtected), C.bluePale, C.blue);
+        statBox(slide, 9.70, 1.55, 2.77, "Net Tax With Plan", fmtK(netTax), C.goldPale, C.gold);
+
+        const barX = 0.85, barW = 11.62, barH = 0.6;
+        const maxTax = Math.max(scorecard.immediateTax, 0.0001);
+        slide.addText("CAPITAL-GAINS TAX EXPOSURE", { x: barX, y: 3.05, w: barW, h: 0.2, fontSize: 8, bold: true, color: C.blue, charSpace: 1.1, margin: 0 });
+
+        slide.addText("Sell outright today", { x: barX, y: 3.42, w: 5.0, h: 0.2, fontSize: 10, color: C.text, margin: 0 });
+        slide.addShape(pptx.ShapeType.roundRect, { x: barX, y: 3.64, w: barW, h: barH, rectRadius: 0.06, fill: { color: C.coral }, line: { color: C.coral } });
+        slide.addText(fmtK(scorecard.immediateTax), { x: barX + 0.12, y: 3.64, w: barW - 0.24, h: barH, fontSize: 13, bold: true, color: C.white, valign: "middle", margin: 0 });
+
+        slide.addText("With our coordinated plan (net)", { x: barX, y: 4.5, w: 5.0, h: 0.2, fontSize: 10, color: C.text, margin: 0 });
+        const netW = Math.max(barW * (netTax / maxTax), 0.9);
+        slide.addShape(pptx.ShapeType.roundRect, { x: barX, y: 4.72, w: barW, h: barH, rectRadius: 0.06, fill: { color: C.lightBar }, line: { color: C.lightBar } });
+        slide.addShape(pptx.ShapeType.roundRect, { x: barX, y: 4.72, w: netW, h: barH, rectRadius: 0.06, fill: { color: C.teal }, line: { color: C.teal } });
+        slide.addText(fmtK(netTax), { x: barX + 0.12, y: 4.72, w: netW - 0.24, h: barH, fontSize: 13, bold: true, color: C.white, valign: "middle", margin: 0 });
+
+        const bits = [];
+        if (scorecard.taxSaved > 0) bits.push(`keeps roughly ${fmtK(scorecard.taxSaved)} of tax invested`);
+        if (scorecard.downsideProtected > 0) bits.push(`removes about ${fmtK(scorecard.downsideProtected)} from single-stock crash risk`);
+        const bottomLine = bits.length
+          ? `Our plan ${bits.join(" and ")} — without a forced sale.`
+          : "A coordinated plan reduces tax and single-stock risk without a forced sale.";
+        card(slide, barX, 5.7, barW, 0.9, "Bottom Line", bottomLine, C.goldPale);
+
+        footer(slide);
+      }
+
       // Slide 4 Strategy Details
       // Removed redundant slide: 03 · KEY OUTPUTS
 
@@ -1129,6 +1194,7 @@ export async function generatePowerPoint({
         "Charitable Remainder Trust",
         `Contribute appreciated ${data.ticker} shares into a trust to reduce concentration, generate income, and support charitable goals.`
       );
+      impactTag(slide, scorecard.perStrategy.crt);
 
       // Stat boxes
       statBox(slide, 0.85, 1.78, 2.65, "Contribution", fmtM(data.crtAllocation), C.bluePale, C.blue);
@@ -1505,6 +1571,7 @@ export async function generatePowerPoint({
         "Enhanced Long/Short Leveraged Tax-Loss Harvesting Strategy",
         "Modest leverage and shorting can help create a more durable stream of harvested tax losses."
       );
+      impactTag(slide, scorecard.perStrategy.harvesting);
 
       // Dynamic 130/30 dollar amounts based on the client-specific harvesting sleeve
       const tlhLongCore = Number(data.harvestingSleeve || 0);
@@ -1856,6 +1923,7 @@ export async function generatePowerPoint({
         `Option Collar on ${data.ticker}`,
         ""
       );
+      impactTag(slide, scorecard.perStrategy.collar);
 
       slide.addText(
         "The payoff chart shows the collar structure: downside floor below the put, participation between the put and call, and capped upside above the call.",
@@ -2014,6 +2082,7 @@ export async function generatePowerPoint({
             `Phased Diversification of ${data.ticker || "the Concentrated Position"}`,
             ""
           );
+          impactTag(slide, scorecard.perStrategy.diversification);
 
           slide.addText(
             "Rather than a single taxable sale, the position is unwound over time within an annual capital-gains budget. After-tax proceeds are reinvested into the diversified portfolio until single-stock concentration falls to the target.",

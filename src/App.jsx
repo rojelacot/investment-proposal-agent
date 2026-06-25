@@ -43,6 +43,7 @@ export default function App() {
   const [selectedProposalModules, setSelectedProposalModules] = useState({
     executiveSummary: true,
     clientProfileGoals: true,
+    taxOnTheTable: true, // hero value slide: tax saved + downside protected
     recommendedInvestmentApproach: false, // opt-in: portfolio strategy + risk/allocation slides
     riskManagementOverview: false,
     goalsTimeline: false,
@@ -2362,6 +2363,7 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
                   {[
                     { key: "executiveSummary", label: "Executive Summary", slides: "1 slide", desc: "Key metrics and strategy overview." },
                     { key: "clientProfileGoals", label: "Client Profile & Goals", slides: "1 slide", desc: "Background, goals, and planning timeline." },
+                    { key: "taxOnTheTable", label: "Tax You're Leaving on the Table", slides: "1 slide", desc: "Hero slide: tax saved + downside protected by the plan." },
                     { key: "recommendedInvestmentApproach", label: "Recommended Investment Approach", slides: "2 slides", desc: "Portfolio strategy table and allocation chart." },
                     { key: "nextSteps", label: "Next Steps", slides: "1 slide", desc: "Action plan and implementation checklist." },
                   ].map((option) => (
