@@ -872,6 +872,27 @@ export async function generatePowerPoint({
         footer(slide);
       }
 
+      // ── HOW WE HELP (firm capabilities — matches the example deck's services
+      // slide: three pillars under orange banner headers). ────────────────────
+      if (modules.capabilities !== false) {
+        slide = pptx.addSlide();
+        title(slide, "OUR APPROACH", "Comprehensive Wealth Management", "");
+        const pillars = [
+          ["Institutional-Quality Investments", ["CIO-led, objective investment advice", "Strategic & tactical asset allocation", "Alternative investment strategies", "Active and passive strategies", "Institutional access at lower fees"]],
+          ["Life & Legacy Planning", ["Tax-optimized portfolio review", "Estate planning & wealth transfer", "Guidance through life transitions", "Education planning", "Protection & insurance needs"]],
+          ["Impact & Family", ["Values-based investing", "Charitable giving strategies", "Women's advisory resources", "Veteran & military family support", "Next-generation engagement"]],
+        ];
+        const pcW = 3.67, pcGap = 0.30;
+        pillars.forEach((p, i) => {
+          const cx = 0.85 + i * (pcW + pcGap);
+          slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: 1.75, w: pcW, h: 0.72, rectRadius: 0.1, fill: { color: C.goldLight }, line: { color: C.goldLight } });
+          slide.addText(p[0], { x: cx + 0.12, y: 1.75, w: pcW - 0.24, h: 0.72, fontSize: 13, bold: true, color: C.white, align: "center", valign: "middle", margin: 0, fit: "shrink" });
+          const items = p[1].map(t => ({ text: t, options: { align: "center", paraSpaceAfter: 16, color: C.text, fontSize: 11.5 } }));
+          slide.addText(items, { x: cx + 0.12, y: 2.85, w: pcW - 0.24, h: 3.4, color: C.text, align: "center", valign: "top", margin: 0 });
+        });
+        footer(slide);
+      }
+
       // Removed assumptions slide.
 
       // Slide 3 — Where Are We Today (current position + portfolio mix, merged)
