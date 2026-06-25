@@ -825,10 +825,20 @@ export async function generatePowerPoint({
         ""
       );
 
-      statBox(slide, 0.85, 1.38, 2.77, "Concentrated Position", fmtM(data.stockPosition), C.coralPale, C.coral);
-      statBox(slide, 3.80, 1.38, 2.77, "Current Concentration", pct(data.concentration), C.goldPale, C.gold);
-      statBox(slide, 6.75, 1.38, 2.77, "Tax If Fully Sold", fmtM(data.immediateTax), C.bluePale, C.blue);
-      statBox(slide, 9.70, 1.38, 2.77, "After CRT Concentration", pct(data.afterCrtConcentration), C.tealPale, C.teal);
+      // Value-forward executive summary: lead with the plan's outcomes (not the
+      // current-state numbers, which now live on the Current Position slide).
+      const ovHasValue = scorecard.taxSaved > 0 || scorecard.downsideProtected > 0;
+      if (ovHasValue) {
+        statBox(slide, 0.85, 1.38, 2.77, "Tax Saved", fmtK(scorecard.taxSaved), C.tealPale, C.teal);
+        statBox(slide, 3.80, 1.38, 2.77, "Downside Protected", fmtK(scorecard.downsideProtected), C.bluePale, C.blue);
+        statBox(slide, 6.75, 1.38, 2.77, "Concentration After Plan", pct(data.afterCrtConcentration), C.goldPale, C.gold);
+        statBox(slide, 9.70, 1.38, 2.77, data.crtIncome > 0 ? "CRT Income / yr" : "Investable Assets", data.crtIncome > 0 ? fmtK(data.crtIncome) : fmtM(data.investableAssets), C.white, C.navy);
+      } else {
+        statBox(slide, 0.85, 1.38, 2.77, "Total Net Worth", fmtM(data.netWorth), C.goldPale, C.gold);
+        statBox(slide, 3.80, 1.38, 2.77, "Investable Assets", fmtM(data.investableAssets), C.white, C.navy);
+        statBox(slide, 6.75, 1.38, 2.77, "Annual Income", data.income ? fmtM(data.income) : "N/A", C.tealPale, C.teal);
+        statBox(slide, 9.70, 1.38, 2.77, "Risk Profile", String(riskProfileLabel).split("—")[0].trim(), C.bluePale, C.blue);
+      }
 
       // Dynamic goal bullets based on selected strategies
       const bOpts = { bullet: { type: "bullet" }, paraSpaceAfter: 6 };
@@ -859,36 +869,36 @@ export async function generatePowerPoint({
         overviewBullets.push({ text: `Implement all selected strategies in a sequenced, tax-sensitive manner`, options: bOpts });
       }
 
-      // Summary of Goals card
-      slide.addShape(pptx.ShapeType.roundRect, { x: 0.8, y: 2.62, w: 6.5, h: 3.6, rectRadius: 0.08, fill: { color: C.white }, line: { color: C.border, width: 0.7 } });
-      slide.addShape(pptx.ShapeType.rect, { x: 0.8, y: 2.62, w: 0.07, h: 3.6, fill: { color: C.goldLight }, line: { color: C.goldLight } });
-      slide.addText("SUMMARY OF GOALS & AGENDA", { x: 1.02, y: 2.79, w: 6.0, h: 0.18, fontSize: 7.2, bold: true, color: C.blue, charSpace: 1.1, margin: 0 });
-      slide.addShape(pptx.ShapeType.line, { x: 1.02, y: 3.09, w: 6.06, h: 0, line: { color: C.border, width: 0.6 } });
-      slide.addText(overviewBullets, { x: 1.02, y: 3.2, w: 6.06, h: 2.8, fontSize: 11, color: C.text, margin: 0, valign: "top" });
+      // Summary of Goals card (left, on the 0.85 grid)
+      slide.addShape(pptx.ShapeType.roundRect, { x: 0.85, y: 2.62, w: 6.4, h: 3.6, rectRadius: 0.08, fill: { color: C.white }, line: { color: C.border, width: 0.7 } });
+      slide.addShape(pptx.ShapeType.rect, { x: 0.85, y: 2.62, w: 0.07, h: 3.6, fill: { color: C.goldLight }, line: { color: C.goldLight } });
+      slide.addText("SUMMARY OF GOALS & AGENDA", { x: 1.07, y: 2.79, w: 5.9, h: 0.18, fontSize: 7.2, bold: true, color: C.blue, charSpace: 1.1, margin: 0 });
+      slide.addShape(pptx.ShapeType.line, { x: 1.07, y: 3.09, w: 5.96, h: 0, line: { color: C.border, width: 0.6 } });
+      slide.addText(overviewBullets, { x: 1.07, y: 3.2, w: 5.96, h: 2.8, fontSize: 11, color: C.text, margin: 0, valign: "top" });
 
-      // Initial Observations — clean bullet list
+      // Right card — outcome-focused (avoids repeating the current-state numbers
+      // shown on the Current Position slide).
+      const dot = (color, after = 6) => ({ bullet: { type: "bullet" }, paraSpaceAfter: after, color, fontSize: 11 });
       const obsLines = [];
-      if (data.ticker && data.stockPosition > 0) {
-        obsLines.push({ text: `${pct(data.concentration)} in ${data.ticker}  (concentration)`, options: { bullet: { type: "bullet" }, bold: false, paraSpaceAfter: 6, color: C.coral, fontSize: 11 } });
-        obsLines.push({ text: `${fmtM(data.immediateTax)} tax if sold outright today`, options: { bullet: { type: "bullet" }, paraSpaceAfter: 6, color: C.coral, fontSize: 11 } });
-        obsLines.push({ text: `${fmtM(data.drawdown40Impact)} at risk in a 40% drawdown`, options: { bullet: { type: "bullet" }, paraSpaceAfter: 6, color: C.coral, fontSize: 11 } });
+      let obsHeading;
+      if (ovHasValue) {
+        obsHeading = "WHAT THIS PLAN DELIVERS";
+        if (scorecard.taxSaved > 0) obsLines.push({ text: `${fmtK(scorecard.taxSaved)} in tax saved vs. an outright sale`, options: dot(C.teal) });
+        if (scorecard.downsideProtected > 0) obsLines.push({ text: `${fmtK(scorecard.downsideProtected)} removed from single-stock crash risk`, options: dot(C.blue) });
+        if (data.afterCrtConcentration != null) obsLines.push({ text: `Concentration reduced to ~${pct(data.afterCrtConcentration)}`, options: dot(C.gold) });
+        if (data.crtIncome > 0) obsLines.push({ text: `${fmtK(data.crtIncome)}/yr estimated CRT income`, options: dot(C.teal, 0) });
       } else {
-        obsLines.push({ text: `No concentrated single-stock position`, options: { bullet: { type: "bullet" }, bold: false, paraSpaceAfter: 6, color: C.teal, fontSize: 11 } });
-        obsLines.push({ text: `${fmtM(data.investableAssets)} investable assets under management`, options: { bullet: { type: "bullet" }, paraSpaceAfter: 6, color: C.blue, fontSize: 11 } });
-      }
-      if (selectedStrategies?.crt) {
-        obsLines.push({ text: `${pct(data.afterCrtConcentration)} concentration after CRT`, options: { bullet: { type: "bullet" }, paraSpaceAfter: 6, color: C.teal, fontSize: 11 } });
-        obsLines.push({ text: `${fmtK(data.crtIncome)}/yr estimated CRT income`, options: { bullet: { type: "bullet" }, paraSpaceAfter: 0, color: C.teal, fontSize: 11 } });
-      } else {
-        obsLines.push({ text: `${fmtM(data.netWorth)} total net worth`, options: { bullet: { type: "bullet" }, paraSpaceAfter: 6, color: C.blue, fontSize: 11 } });
-        obsLines.push({ text: `Risk profile: ${riskProfileLabel || "Review"}`, options: { bullet: { type: "bullet" }, paraSpaceAfter: 0, color: C.teal, fontSize: 11 } });
+        obsHeading = "CLIENT SNAPSHOT";
+        obsLines.push({ text: `${fmtM(data.netWorth)} total net worth`, options: dot(C.blue) });
+        obsLines.push({ text: `${fmtM(data.investableAssets)} investable assets`, options: dot(C.navy) });
+        obsLines.push({ text: `Risk profile: ${riskProfileLabel || "Review"}`, options: dot(C.teal, 0) });
       }
 
-      slide.addShape(pptx.ShapeType.roundRect, { x: 7.65, y: 2.62, w: 4.55, h: 3.6, rectRadius: 0.08, fill: { color: C.white }, line: { color: C.border, width: 0.7 } });
-      slide.addShape(pptx.ShapeType.rect, { x: 7.65, y: 2.62, w: 0.07, h: 3.6, fill: { color: C.goldLight }, line: { color: C.goldLight } });
-      slide.addText("INITIAL OBSERVATIONS", { x: 7.87, y: 2.79, w: 4.1, h: 0.18, fontSize: 7.2, bold: true, color: C.blue, charSpace: 1.1, margin: 0 });
-      slide.addShape(pptx.ShapeType.line, { x: 7.87, y: 3.09, w: 4.1, h: 0, line: { color: C.border, width: 0.6 } });
-      slide.addText(obsLines, { x: 7.87, y: 3.2, w: 4.1, h: 2.8, fontSize: 11, color: C.text, margin: 0, valign: "top" });
+      slide.addShape(pptx.ShapeType.roundRect, { x: 7.45, y: 2.62, w: 5.02, h: 3.6, rectRadius: 0.08, fill: { color: C.white }, line: { color: C.border, width: 0.7 } });
+      slide.addShape(pptx.ShapeType.rect, { x: 7.45, y: 2.62, w: 0.07, h: 3.6, fill: { color: C.goldLight }, line: { color: C.goldLight } });
+      slide.addText(obsHeading, { x: 7.67, y: 2.79, w: 4.5, h: 0.18, fontSize: 7.2, bold: true, color: C.blue, charSpace: 1.1, margin: 0 });
+      slide.addShape(pptx.ShapeType.line, { x: 7.67, y: 3.09, w: 4.58, h: 0, line: { color: C.border, width: 0.6 } });
+      slide.addText(obsLines, { x: 7.67, y: 3.2, w: 4.58, h: 2.8, fontSize: 11, color: C.text, margin: 0, valign: "top" });
 
       footer(slide);
 
