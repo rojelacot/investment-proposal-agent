@@ -1137,6 +1137,7 @@ button:disabled {
   font-weight: 600;
   color: var(--navy);
   line-height: 1.45;
+  text-align: left;
 }
 
 .rq-options {
