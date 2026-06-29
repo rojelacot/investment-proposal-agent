@@ -966,6 +966,60 @@ button:disabled {
 
 /* ── Risk Questionnaire ────────────────────────────────────────────────── */
 
+.rq-toggle-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.rq-toggle-header h2 {
+  margin: 0 0 4px;
+}
+
+.rq-toggle-subtitle {
+  font-size: 13px;
+  color: var(--gray-mid);
+  margin: 0;
+}
+
+.rq-toggle-buttons {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.rq-toggle-btn {
+  padding: 8px 14px;
+  border-radius: 7px;
+  border: 1.5px solid #dde3ef;
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-mid);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.rq-toggle-btn:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+}
+
+.rq-toggle-btn--active {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+
+.rq-toggle-btn--active:hover {
+  background: var(--navy);
+  color: #fff;
+}
+
 .risk-questionnaire {
   display: flex;
   flex-direction: column;

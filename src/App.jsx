@@ -74,6 +74,7 @@ export default function App() {
   });
 
   const [selectedRiskProfile, setSelectedRiskProfile] = useState("");
+  const [showQuestionnaire, setShowQuestionnaire] = useState(true);
   const [useRecommendedApproach, setUseRecommendedApproach] = useState(false);
   const [firmName, setFirmName] = useState("");
   const [advisorName, setAdvisorName] = useState("");
@@ -2201,14 +2202,41 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
             onChange={(e) => setNotes(e.target.value)}
           />
 
-          <button onClick={runAgent}>Run Agent</button>
         </section>
         )}
 
         {!reviewData && !proposal && clarifyingQuestions.length === 0 && (
         <section className="card">
-          <RiskQuestionnaire onProfile={(profileKey) => setSelectedRiskProfile(profileKey)} />
+          <div className="rq-toggle-header">
+            <div>
+              <h2>Risk Assessment</h2>
+              <p className="rq-toggle-subtitle">
+                {showQuestionnaire ? "Complete the questionnaire to determine the client's risk profile." : "Client has an existing risk profile — questionnaire skipped."}
+              </p>
+            </div>
+            <div className="rq-toggle-buttons">
+              <button
+                className={`rq-toggle-btn${showQuestionnaire ? " rq-toggle-btn--active" : ""}`}
+                onClick={() => setShowQuestionnaire(true)}
+              >
+                Complete Questionnaire
+              </button>
+              <button
+                className={`rq-toggle-btn${!showQuestionnaire ? " rq-toggle-btn--active" : ""}`}
+                onClick={() => { setShowQuestionnaire(false); setSelectedRiskProfile(""); }}
+              >
+                Skip — Already Assessed
+              </button>
+            </div>
+          </div>
+          {showQuestionnaire && (
+            <RiskQuestionnaire onProfile={(profileKey) => setSelectedRiskProfile(profileKey)} />
+          )}
         </section>
+        )}
+
+        {!reviewData && !proposal && clarifyingQuestions.length === 0 && (
+          <button onClick={runAgent}>Run Agent</button>
         )}
 
         <div className="output-panel">
