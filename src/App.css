@@ -972,6 +972,7 @@ button:disabled {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
+  text-align: left;
 }
 
 .rq-toggle-header h2 {
