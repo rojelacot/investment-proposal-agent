@@ -75,6 +75,7 @@ export default function App() {
 
   const [selectedRiskProfile, setSelectedRiskProfile] = useState("");
   const [showQuestionnaire, setShowQuestionnaire] = useState(true);
+  const [questionnaireAnswers, setQuestionnaireAnswers] = useState({});
   const [useRecommendedApproach, setUseRecommendedApproach] = useState(false);
   const [firmName, setFirmName] = useState("");
   const [advisorName, setAdvisorName] = useState("");
@@ -157,6 +158,8 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
         if (s.selectedRiskProfile != null) setSelectedRiskProfile(s.selectedRiskProfile);
         if (typeof s.useRecommendedApproach === "boolean") setUseRecommendedApproach(s.useRecommendedApproach);
         if (Array.isArray(s.scannedHoldings)) setScannedHoldings(s.scannedHoldings);
+        if (s.questionnaireAnswers) setQuestionnaireAnswers(s.questionnaireAnswers);
+        if (typeof s.showQuestionnaire === "boolean") setShowQuestionnaire(s.showQuestionnaire);
       }
     } catch { /* corrupt/unavailable storage — start fresh */ }
     hydratedRef.current = true;
@@ -170,6 +173,7 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
         reviewData, qualityReport, selectedStrategies,
         selectedPortfolioStrategies, selectedProposalModules,
         selectedRiskProfile, useRecommendedApproach, scannedHoldings,
+        questionnaireAnswers, showQuestionnaire,
         savedAt: new Date().toISOString(),
       }));
     } catch { /* quota or serialization issue — non-fatal */ }
@@ -178,6 +182,7 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
     reviewData, qualityReport, selectedStrategies,
     selectedPortfolioStrategies, selectedProposalModules,
     selectedRiskProfile, useRecommendedApproach, scannedHoldings,
+    questionnaireAnswers, showQuestionnaire,
   ]);
 
 
@@ -2223,14 +2228,18 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
               </button>
               <button
                 className={`rq-toggle-btn${!showQuestionnaire ? " rq-toggle-btn--active" : ""}`}
-                onClick={() => { setShowQuestionnaire(false); setSelectedRiskProfile(""); }}
+                onClick={() => { setShowQuestionnaire(false); setSelectedRiskProfile(""); setQuestionnaireAnswers({}); }}
               >
                 Skip — Already Assessed
               </button>
             </div>
           </div>
           {showQuestionnaire && (
-            <RiskQuestionnaire onProfile={(profileKey) => setSelectedRiskProfile(profileKey)} />
+            <RiskQuestionnaire
+              initialAnswers={questionnaireAnswers}
+              onAnswersChange={setQuestionnaireAnswers}
+              onProfile={(profileKey) => setSelectedRiskProfile(profileKey)}
+            />
           )}
         </section>
         )}

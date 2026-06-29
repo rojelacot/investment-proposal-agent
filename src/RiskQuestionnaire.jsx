@@ -185,9 +185,17 @@ const QUESTIONS = [
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────────
-export default function RiskQuestionnaire({ onProfile }) {
-  const [answers, setAnswers] = useState({}); // { questionNum: { letter, score } }
-  const [profile, setProfile] = useState(null); // { name, desc }
+export default function RiskQuestionnaire({ onProfile, onAnswersChange, initialAnswers = {} }) {
+  const [answers, setAnswers] = useState(initialAnswers);
+  const [profile, setProfile] = useState(() => {
+    // Recompute profile from restored answers if all 8 are present
+    if (Object.keys(initialAnswers).length === 8) {
+      const timeScore = [1, 2].reduce((s, q) => s + (initialAnswers[q]?.score || 0), 0);
+      const riskScore = [3, 4, 5, 6, 7, 8].reduce((s, q) => s + (initialAnswers[q]?.score || 0), 0);
+      return scoreToProfile(timeScore, riskScore);
+    }
+    return null;
+  });
 
   const answeredCount = Object.keys(answers).length;
   const progressPct = (answeredCount / 8) * 100;
@@ -195,6 +203,7 @@ export default function RiskQuestionnaire({ onProfile }) {
   function selectAnswer(questionNum, letter, score) {
     const next = { ...answers, [questionNum]: { letter, score } };
     setAnswers(next);
+    onAnswersChange?.(next);
 
     const count = Object.keys(next).length;
     if (count === 8) {
@@ -210,6 +219,7 @@ export default function RiskQuestionnaire({ onProfile }) {
     setAnswers({});
     setProfile(null);
     onProfile?.("");
+    onAnswersChange?.({});
   }
 
   return (
