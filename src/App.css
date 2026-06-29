@@ -1103,7 +1103,7 @@ button:disabled {
 
 .rq-card-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -1120,7 +1120,6 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 1px;
 }
 
 .rq-card--answered .rq-num {
