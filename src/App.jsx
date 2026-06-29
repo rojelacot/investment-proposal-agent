@@ -878,7 +878,7 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
     return getRiskProfileDisplay(selectedRiskProfile);
   }
 
-  function recommendInvestmentApproach(data = {}, notes = "") {
+  function recommendInvestmentApproach(data = {}, notes = "", questionnaireProfile = "") {
     const text = String(notes || "").toLowerCase();
     const riskNumber = extractRiskNumberFromText(notes);
 
@@ -938,7 +938,10 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
 
     let riskProfile = riskProfileFromRiskNumber(riskNumber);
 
-    if (!riskNumber) {
+    if (questionnaireProfile) {
+      // Questionnaire sets the base; notes-based modifiers are still applied below
+      riskProfile = questionnaireProfile;
+    } else if (!riskNumber) {
       if (text.includes("aggressive") || text.includes("maximum growth")) riskProfile = "aggressive";
       else if (text.includes("growth plus")) riskProfile = "growthPlus";
       else if (text.includes("growth")) riskProfile = "growth";
@@ -990,7 +993,8 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
     }
 
     const riskReasonParts = [];
-    if (riskNumber) riskReasonParts.push(`Risk Number ${riskNumber} maps to ${getRiskProfileDisplay(riskProfile)}.`);
+    if (questionnaireProfile) riskReasonParts.push(`Based on the 8-question risk assessment (${getRiskProfileDisplay(questionnaireProfile)}).`);
+    else if (riskNumber) riskReasonParts.push(`Risk Number ${riskNumber} maps to ${getRiskProfileDisplay(riskProfile)}.`);
     if (liquidityNeed) riskReasonParts.push("Near-term liquidity or withdrawal needs support avoiding an overly aggressive allocation.");
     if (retirementSoon) riskReasonParts.push("Retirement or income planning needs support balancing growth with stability.");
     if (concentration >= 40) riskReasonParts.push("High single-stock concentration increases household risk and supports a diversified risk profile.");
@@ -1017,7 +1021,7 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
   function applyInvestmentApproachRecommendationForData(dataForRecommendation) {
     if (!dataForRecommendation) return;
 
-    const rec = recommendInvestmentApproach(dataForRecommendation, notes);
+    const rec = recommendInvestmentApproach(dataForRecommendation, notes, selectedRiskProfile);
 
     setSelectedPortfolioStrategies({
       corePrivate: rec.portfolioKey === "corePrivate",
@@ -2507,7 +2511,7 @@ Client has $50M net worth, $30M investable assets, $18M AAPL position, 60% conce
               </div>
 
               {reviewData && (() => {
-                const recommendation = recommendInvestmentApproach(reviewData, notes);
+                const recommendation = recommendInvestmentApproach(reviewData, notes, selectedRiskProfile);
 
                 return (
                   <div className="recommendation-card">
