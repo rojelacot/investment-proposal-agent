@@ -916,7 +916,7 @@ export async function generatePowerPoint({
           const cx = 0.85 + i * (pcW + pcGap);
           slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: 1.9, w: pcW, h: 0.8, rectRadius: 0.1, fill: { color: C.goldLight }, line: { color: C.goldLight } });
           slide.addText(p[0], { x: cx + 0.12, y: 1.9, w: pcW - 0.24, h: 0.8, fontSize: 15, bold: true, color: C.white, align: "center", valign: "middle", margin: 0, fit: "shrink" });
-          const items = p[1].map(t => ({ text: t, options: { align: "center", paraSpaceAfter: 26, color: C.text, fontSize: 14.5 } }));
+          const items = p[1].map(t => ({ text: t, options: { align: "center", paraSpaceAfter: 26, color: C.text, fontSize: 14.5, breakLine: true } }));
           slide.addText(items, { x: cx + 0.12, y: 3.2, w: pcW - 0.24, h: 3.2, color: C.text, align: "center", valign: "top", margin: 0 });
         });
         footer(slide);
