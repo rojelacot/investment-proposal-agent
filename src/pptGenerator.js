@@ -905,7 +905,7 @@ export async function generatePowerPoint({
       // slide: three pillars under orange banner headers). ────────────────────
       if (modules.capabilities !== false) {
         slide = pptx.addSlide();
-        title(slide, "OUR APPROACH", "Comprehensive Wealth Management", "");
+        title(slide, "OUR APPROACH", "Our Approach", "");
         const pillars = [
           ["Institutional-Quality Investments", ["CIO-led, objective investment advice", "Strategic & tactical asset allocation", "Alternative investment strategies", "Active and passive strategies", "Institutional access at lower fees"]],
           ["Life & Legacy Planning", ["Tax-optimized portfolio review", "Estate planning & wealth transfer", "Guidance through life transitions", "Education planning", "Protection & insurance needs"]],
@@ -1044,7 +1044,7 @@ export async function generatePowerPoint({
       title(
         slide,
         "03 · ACTION PLAN",
-        "Recommended Action Plan",
+        "Action Plan",
         `Advisor-selected strategies and implementation pathway for ${name}.`
       );
 
@@ -1205,7 +1205,7 @@ export async function generatePowerPoint({
         title(
           slide,
           "THE OPPORTUNITY",
-          "Tax You're Leaving on the Table",
+          "Tax Opportunity",
           ""
         );
 
@@ -1340,7 +1340,7 @@ export async function generatePowerPoint({
         title(
           compareSlide,
           "04C · CRT COMPARISON",
-          "Tax & Earnings Comparison of CRT vs. Outright Stock Sale",
+          "CRT vs. Outright Sale",
           "A side-by-side view of taxes, capital available, and income potential."
         );
 
@@ -1625,7 +1625,7 @@ export async function generatePowerPoint({
       title(
         slide,
         "06 · TAX-LOSS HARVESTING",
-        "Enhanced Long/Short Leveraged Tax-Loss Harvesting Strategy",
+        "Tax-Loss Harvesting",
         "Modest leverage and shorting can help create a more durable stream of harvested tax losses."
       );
 
@@ -1828,7 +1828,7 @@ export async function generatePowerPoint({
       title(
         slide,
         "06B · TAX-LOSS HARVESTING",
-        "Direct Indexing & Leveraged Tax-Loss Harvesting",
+        "Direct Indexing",
         "A realized capital loss can become a planning asset because it may offset gains or carry forward into future years."
       );
 
@@ -2198,7 +2198,7 @@ export async function generatePowerPoint({
       title(
         slide,
         "06 · INTEGRATED IMPACT",
-        "Integrated Impact Dashboard",
+        "Integrated Impact",
         `A coordinated plan reduces concentration, creates tax capacity, generates income, and moderates downside risk.`
       );
 
@@ -2284,7 +2284,7 @@ export async function generatePowerPoint({
         title(
           slide,
           "07 · PORTFOLIO TRANSFORMATION",
-          "Portfolio After Strategy Implementation",
+          "Portfolio Transformation",
           `How the portfolio is repositioned across CRT, harvesting sleeve, collared position, and remaining holdings.`
         );
 
@@ -4285,7 +4285,7 @@ export async function generatePowerPoint({
       title(
         slide,
         "NEXT STEPS",
-        "How We'll Move Forward Together",
+        "Next Steps",
         "A clear path from this conversation to a fully implemented plan."
       );
 
