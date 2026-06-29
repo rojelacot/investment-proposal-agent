@@ -215,7 +215,6 @@ export default function RiskQuestionnaire({ onProfile }) {
   return (
     <div className="risk-questionnaire">
       <div className="rq-header">
-        <div className="rq-icon">🧭</div>
         <div>
           <h3>8-Question Risk Assessment</h3>
           <p>Answer all 8 questions to determine the client's risk profile.</p>
