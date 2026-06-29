@@ -1030,6 +1030,7 @@ button:disabled {
   display: flex;
   align-items: flex-start;
   gap: 14px;
+  text-align: left;
 }
 
 .rq-icon {
