@@ -664,11 +664,11 @@ export async function generatePowerPoint({
       // slide: three pillars under orange banner headers). ────────────────────
       if (modules.capabilities !== false) {
         slide = pptx.addSlide();
-        title(slide, "OUR APPROACH", "Our Approach", "");
+        title(slide, "OUR APPROACH", "Financial Planning - AllWEALTH", "");
         const pillars = [
-          ["Institutional-Quality Investments", ["CIO-led, objective investment advice", "Strategic & tactical asset allocation", "Alternative investment strategies", "Active and passive strategies", "Institutional access at lower fees"]],
+          ["Access to Institutional Quality Investments", ["CIO-led, objective investment advice", "Strategic & tactical asset allocation", "Alternative investment strategies", "Active and passive strategies", "Institutional access at lower fees"]],
           ["Life & Legacy Planning", ["Tax-optimized portfolio review", "Estate planning & wealth transfer", "Guidance through life transitions", "Education planning", "Protection & insurance needs"]],
-          ["Impact & Family", ["Values-based investing", "Charitable giving strategies", "Women's advisory resources", "Veteran & military family support", "Next-generation engagement"]],
+          ["Impact Initiatives", ["Values-based investing", "Charitable giving strategies", "Women's advisory resources", "Veteran & military family support", "Next-generation engagement"]],
         ];
         const pcW = 3.67, pcGap = 0.30;
         pillars.forEach((p, i) => {
