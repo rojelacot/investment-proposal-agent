@@ -1,0 +1,93 @@
+[
+  {
+    "field": "us_equity expected_return (primary, trailing realized)",
+    "value": "0.1082",
+    "source_name": "Yahoo Finance via yahoo-finance2 — SPY",
+    "source_url": "https://finance.yahoo.com/",
+    "date_range": "1993-02..2026-06",
+    "retrieval_date": "2026-06-30"
+  },
+  {
+    "field": "us_equity expected_return (cross-reference)",
+    "value": "0.1000",
+    "source_name": "Damodaran NYU Stern, S&P 500 geometric 1928-2024",
+    "source_url": "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html",
+    "date_range": "long-run published",
+    "retrieval_date": "2026-06-30",
+    "note": "Within 15%; adopted primary trailing figure (0.1082)."
+  },
+  {
+    "field": "us_equity volatility (annualized monthly)",
+    "value": "0.1498",
+    "source_name": "Yahoo Finance via yahoo-finance2 — SPY",
+    "source_url": "https://finance.yahoo.com/",
+    "date_range": "1993-02..2026-06",
+    "retrieval_date": "2026-06-30"
+  },
+  {
+    "field": "bonds expected_return (primary, trailing realized)",
+    "value": "0.0309",
+    "source_name": "Yahoo Finance via yahoo-finance2 — AGG",
+    "source_url": "https://finance.yahoo.com/",
+    "date_range": "2003-10..2026-06",
+    "retrieval_date": "2026-06-30"
+  },
+  {
+    "field": "bonds expected_return (cross-reference)",
+    "value": "0.0480",
+    "source_name": "Damodaran NYU Stern, 10-yr T.Bond geometric 1928-2024",
+    "source_url": "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html",
+    "date_range": "long-run published",
+    "retrieval_date": "2026-06-30",
+    "note": "Diverges >15% from primary; adopted LOWER (0.0309) and flagged."
+  },
+  {
+    "field": "bonds volatility (annualized monthly)",
+    "value": "0.0451",
+    "source_name": "Yahoo Finance via yahoo-finance2 — AGG",
+    "source_url": "https://finance.yahoo.com/",
+    "date_range": "2003-10..2026-06",
+    "retrieval_date": "2026-06-30"
+  },
+  {
+    "field": "alternatives expected_return (primary, trailing realized)",
+    "value": "0.0484",
+    "source_name": "Yahoo Finance via yahoo-finance2 — VNQ+DBC 50/50",
+    "source_url": "https://finance.yahoo.com/",
+    "date_range": "2006-03..2026-06",
+    "retrieval_date": "2026-06-30"
+  },
+  {
+    "field": "alternatives expected_return (cross-reference)",
+    "value": "0.0570",
+    "source_name": "FTSE NAREIT (REIT) + S&P GSCI (commodity) long-run blend",
+    "source_url": "https://www.reit.com/data-research/reit-indexes/annual-index-values-returns",
+    "date_range": "long-run published",
+    "retrieval_date": "2026-06-30",
+    "note": "Diverges >15% from primary; adopted LOWER (0.0484) and flagged."
+  },
+  {
+    "field": "alternatives volatility (annualized monthly)",
+    "value": "0.1644",
+    "source_name": "Yahoo Finance via yahoo-finance2 — VNQ+DBC 50/50",
+    "source_url": "https://finance.yahoo.com/",
+    "date_range": "2006-03..2026-06",
+    "retrieval_date": "2026-06-30"
+  },
+  {
+    "field": "cash expected_return / risk_free_rate",
+    "value": "0.0390",
+    "source_name": "FRED 3-Month Treasury Constant Maturity (DGS3MO), trailing ~1yr avg",
+    "source_url": "https://fred.stlouisfed.org/series/DGS3MO",
+    "date_range": "2025-06-25..2026-06-26",
+    "retrieval_date": "2026-06-30"
+  },
+  {
+    "field": "inflation_cpi (YoY)",
+    "value": "0.0427",
+    "source_name": "FRED CPI All Urban Consumers (CPIAUCSL), 12-month change",
+    "source_url": "https://fred.stlouisfed.org/series/CPIAUCSL",
+    "date_range": "2025-04-01..2026-05-01",
+    "retrieval_date": "2026-06-30"
+  }
+]
