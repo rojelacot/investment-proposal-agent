@@ -1,0 +1,120 @@
+{
+  "client": "Priya N. Chandrasekaran",
+  "profile": "AGGRESSIVE",
+  "allocation": {
+    "us_equity": 0.75,
+    "alternatives": 0.15,
+    "bonds": 0.05,
+    "cash": 0.05
+  },
+  "backtest": {
+    "model": "backtest",
+    "window": {
+      "start": 2007,
+      "end": 2025,
+      "n_years": 19
+    },
+    "allocation": {
+      "us_equity": 0.75,
+      "bonds": 0.05,
+      "alternatives": 0.15,
+      "cash": 0.05
+    },
+    "portfolio_cagr": 0.08999120977452835,
+    "annualized_volatility": 0.15201167906410948,
+    "best_year": {
+      "year": 2021,
+      "return": 0.27754609999999996
+    },
+    "worst_year": {
+      "year": 2008,
+      "return": -0.3215901
+    },
+    "positive_years_pct": 0.7894736842105263,
+    "starting_value": 650000.0,
+    "ending_value": 3341567.765595369,
+    "total_growth_multiple": 5.140873485531337,
+    "per_asset_cagr": {
+      "us_equity": 0.10672222207012583,
+      "bonds": 0.031081118096144555,
+      "alternatives": 0.03508602330478583,
+      "cash": 0.015074245217271853
+    },
+    "annual_portfolio_returns": [
+      0.05282405,
+      -0.3215901,
+      0.24254935000000002,
+      0.1464444,
+      0.02217685,
+      0.1371212,
+      0.23967424999999998,
+      0.1000723,
+      -0.009846800000000001,
+      0.1125221,
+      0.1733241,
+      -0.047210499999999996,
+      0.27061975,
+      0.1343144,
+      0.27754609999999996,
+      -0.1509193,
+      0.20403775000000002,
+      0.1964482,
+      0.14928065000000001
+    ]
+  },
+  "monte_carlo": {
+    "model": "monte_carlo",
+    "paths": 20000,
+    "horizon_years": 28,
+    "allocation": {
+      "us_equity": 0.75,
+      "bonds": 0.05,
+      "alternatives": 0.15,
+      "cash": 0.05
+    },
+    "starting_value": 650000.0,
+    "terminal_value": {
+      "p5": 2720178.3667453392,
+      "p10": 3494863.8306913204,
+      "p25": 5201902.987512347,
+      "p50": 8182389.897029321,
+      "p75": 12654607.583142906,
+      "p90": 18534931.528140035,
+      "p95": 23569042.32917474,
+      "mean": 9974176.41491073
+    },
+    "annualized_return_p50": 0.09467330918939099,
+    "prob_preserve_real_value": 0.97745,
+    "prob_double": 0.9964,
+    "real_value_threshold": 2095925.375814466,
+    "inflation_assumption": 0.042699999999999995
+  },
+  "risk_metrics": {
+    "model": "risk_metrics",
+    "allocation": {
+      "us_equity": 0.75,
+      "bonds": 0.05,
+      "alternatives": 0.15,
+      "cash": 0.05
+    },
+    "risk_free_rate": 0.039,
+    "mean_annual_return": 0.10154677631578946,
+    "annualized_volatility": 0.15201167906410948,
+    "sharpe_ratio": 0.41146033450108105,
+    "sortino_ratio": 0.3331901152562397,
+    "max_drawdown": -0.3215901,
+    "var_95_annual": 0.16798638,
+    "downside_deviation": 0.18772098406247104
+  },
+  "step6": {
+    "independent_cagr_matches": true,
+    "mc_median_plausible": true,
+    "shared_inputs": true
+  },
+  "step8": {
+    "sums_to_100": true,
+    "liquidity_ok": true,
+    "matches_profile": true,
+    "consistent_with_sim": true
+  }
+}

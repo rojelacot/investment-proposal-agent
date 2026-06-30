@@ -1,0 +1,58 @@
+{
+  "as_of": "2026-06-30",
+  "description": "LIVE Step-4 assumptions. Per-asset returns are trailing realized geometric returns from Yahoo Finance proxies (longest available window), cross-referenced against published long-run sources; where divergence exceeded 15% the LOWER figure was adopted. Volatilities are annualized from monthly returns; correlations are sample correlations of monthly returns. Cash/risk-free and CPI from FRED.",
+  "risk_free_rate": 0.039,
+  "inflation_cpi": 0.042699999999999995,
+  "assets": {
+    "us_equity": {
+      "label": "US Large-Cap Equity (SPY)",
+      "expected_return": 0.1082,
+      "volatility": 0.14980000000000002,
+      "divergence_flag": false
+    },
+    "bonds": {
+      "label": "US Investment-Grade Bonds (AGG)",
+      "expected_return": 0.030899999999999997,
+      "volatility": 0.0451,
+      "divergence_flag": true
+    },
+    "alternatives": {
+      "label": "Diversified Alternatives (VNQ+DBC 50/50)",
+      "expected_return": 0.0484,
+      "volatility": 0.16440000000000002,
+      "divergence_flag": true
+    },
+    "cash": {
+      "label": "Cash / 3-Month T-Bills (FRED DGS3MO)",
+      "expected_return": 0.039,
+      "volatility": 0.01,
+      "divergence_flag": false
+    }
+  },
+  "correlations": {
+    "us_equity": {
+      "us_equity": 1,
+      "bonds": 0.24,
+      "alternatives": 0.74,
+      "cash": 0
+    },
+    "bonds": {
+      "us_equity": 0.24,
+      "bonds": 1,
+      "alternatives": 0.23,
+      "cash": 0.1
+    },
+    "alternatives": {
+      "us_equity": 0.74,
+      "bonds": 0.23,
+      "alternatives": 1,
+      "cash": 0
+    },
+    "cash": {
+      "us_equity": 0,
+      "bonds": 0.1,
+      "alternatives": 0,
+      "cash": 1
+    }
+  }
+}

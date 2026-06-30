@@ -1,0 +1,120 @@
+{
+  "client": "Harold T. Brennan",
+  "profile": "CONSERVATIVE",
+  "allocation": {
+    "bonds": 0.6,
+    "us_equity": 0.25,
+    "cash": 0.1,
+    "alternatives": 0.05
+  },
+  "backtest": {
+    "model": "backtest",
+    "window": {
+      "start": 2007,
+      "end": 2025,
+      "n_years": 19
+    },
+    "allocation": {
+      "us_equity": 0.25,
+      "bonds": 0.6,
+      "alternatives": 0.05,
+      "cash": 0.1
+    },
+    "portfolio_cagr": 0.052101160521045964,
+    "annualized_volatility": 0.06302009203437478,
+    "best_year": {
+      "year": 2019,
+      "return": 0.1416025
+    },
+    "worst_year": {
+      "year": 2022,
+      "return": -0.1256106
+    },
+    "positive_years_pct": 0.7894736842105263,
+    "starting_value": 1800000.0,
+    "ending_value": 4724599.486963748,
+    "total_growth_multiple": 2.6247774927576377,
+    "per_asset_cagr": {
+      "us_equity": 0.10672222207012583,
+      "bonds": 0.031081118096144555,
+      "alternatives": 0.03508602330478583,
+      "cash": 0.015074245217271853
+    },
+    "annual_portfolio_returns": [
+      0.059530099999999996,
+      -0.05973345,
+      0.0991767,
+      0.08470654999999999,
+      0.054141449999999994,
+      0.0661909,
+      0.07078649999999999,
+      0.06710835,
+      -0.00016785000000000064,
+      0.05260595,
+      0.08034895,
+      -0.013236249999999998,
+      0.1416025,
+      0.0893613,
+      0.08245995,
+      -0.1256106,
+      0.10469325,
+      0.0770484,
+      0.0950968
+    ]
+  },
+  "monte_carlo": {
+    "model": "monte_carlo",
+    "paths": 20000,
+    "horizon_years": 9,
+    "allocation": {
+      "us_equity": 0.25,
+      "bonds": 0.6,
+      "alternatives": 0.05,
+      "cash": 0.1
+    },
+    "starting_value": 1800000.0,
+    "terminal_value": {
+      "p5": 2209338.808678381,
+      "p10": 2348763.3368745847,
+      "p25": 2598302.0543040344,
+      "p50": 2901061.7138198745,
+      "p75": 3238593.791788322,
+      "p90": 3569540.7473753784,
+      "p95": 3782228.5077356687,
+      "mean": 2936135.465421009
+    },
+    "annualized_return_p50": 0.05446363500795015,
+    "prob_preserve_real_value": 0.7309,
+    "prob_double": 0.09055,
+    "real_value_threshold": 2622447.888648474,
+    "inflation_assumption": 0.042699999999999995
+  },
+  "risk_metrics": {
+    "model": "risk_metrics",
+    "allocation": {
+      "us_equity": 0.25,
+      "bonds": 0.6,
+      "alternatives": 0.05,
+      "cash": 0.1
+    },
+    "risk_free_rate": 0.039,
+    "mean_annual_return": 0.05400576315789474,
+    "annualized_volatility": 0.06302009203437478,
+    "sharpe_ratio": 0.23811077822148738,
+    "sortino_ratio": 0.14802209493745128,
+    "max_drawdown": -0.12561060000000002,
+    "var_95_annual": 0.066321165,
+    "downside_deviation": 0.10137515729821027
+  },
+  "step6": {
+    "independent_cagr_matches": true,
+    "mc_median_plausible": true,
+    "shared_inputs": true
+  },
+  "step8": {
+    "sums_to_100": true,
+    "liquidity_ok": true,
+    "matches_profile": true,
+    "consistent_with_sim": true
+  }
+}
