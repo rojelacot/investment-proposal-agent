@@ -1,10 +1,13 @@
 import { useState } from "react";
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import PdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
 import * as XLSX from "xlsx";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+// Let Vite bundle the pdf.js worker (and its deps) instead of fetching it as a
+// runtime module import — the ?url form makes pdf.js load the worker as a module
+// worker, which fails in dev with "Failed to fetch dynamically imported module".
+pdfjsLib.GlobalWorkerOptions.workerPort = new PdfjsWorker();
 
 export default function FileUploadBox({ onTextExtracted }) {
   const [uploadedFiles, setUploadedFiles] = useState([]);
