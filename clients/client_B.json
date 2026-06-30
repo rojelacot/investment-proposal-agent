@@ -1,0 +1,17 @@
+{
+  "name": "Harold T. Brennan",
+  "age": 71,
+  "risk_tolerance": "low",
+  "investment_horizon": 9,
+  "portfolio_size": 1800000,
+  "goals": [
+    "Preserve capital and avoid large drawdowns in retirement",
+    "Generate stable income to supplement Social Security and a pension",
+    "Maintain a reserve for potential long-term care needs"
+  ],
+  "restrictions": [
+    "No individual equities — pooled funds / ETFs only",
+    "No high-yield (below-investment-grade) bonds",
+    "Maintain at least 10% portfolio liquidity"
+  ]
+}

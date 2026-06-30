@@ -1,0 +1,16 @@
+{
+  "name": "Priya N. Chandrasekaran",
+  "age": 33,
+  "risk_tolerance": "high",
+  "investment_horizon": 28,
+  "portfolio_size": 650000,
+  "goals": [
+    "Maximize long-term capital growth over a multi-decade horizon",
+    "Build wealth toward early financial independence",
+    "Accept meaningful short-term volatility in exchange for higher expected returns"
+  ],
+  "restrictions": [
+    "No fossil-fuel producers",
+    "No leveraged or inverse ETFs"
+  ]
+}

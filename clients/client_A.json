@@ -1,0 +1,17 @@
+{
+  "name": "Margaret R. Whitfield",
+  "age": 58,
+  "risk_tolerance": "moderate",
+  "investment_horizon": 12,
+  "portfolio_size": 2500000,
+  "goals": [
+    "Fund retirement income beginning at age 65",
+    "Preserve real (inflation-adjusted) purchasing power over the horizon",
+    "Leave a meaningful legacy for two adult children"
+  ],
+  "restrictions": [
+    "No tobacco-producing companies",
+    "No direct cryptocurrency holdings",
+    "Maintain at least 10% portfolio liquidity"
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "client": "Margaret R. Whitfield",
+  "profile": "MODERATE",
+  "allocation": {
+    "us_equity": 0.45,
+    "bonds": 0.3,
+    "alternatives": 0.15,
+    "cash": 0.1
+  },
+  "backtest": {
+    "model": "backtest",
+    "window": {
+      "start": 2007,
+      "end": 2025,
+      "n_years": 19
+    },
+    "allocation": {
+      "us_equity": 0.45,
+      "bonds": 0.3,
+      "alternatives": 0.15,
+      "cash": 0.1
+    },
+    "portfolio_cagr": 0.06855557938033785,
+    "annualized_volatility": 0.1018853531889951,
+    "best_year": {
+      "year": 2019,
+      "return": 0.1989142
+    },
+    "worst_year": {
+      "year": 2008,
+      "return": -0.19013555
+    },
+    "positive_years_pct": 0.7894736842105263,
+    "starting_value": 2500000.0,
+    "ending_value": 8812217.712412525,
+    "total_growth_multiple": 3.52488708496501,
+    "per_asset_cagr": {
+      "us_equity": 0.10672222207012583,
+      "bonds": 0.031081118096144555,
+      "alternatives": 0.03508602330478583,
+      "cash": 0.015074245217271853
+    },
+    "annual_portfolio_returns": [
+      0.055909099999999996,
+      -0.19013555,
+      0.17033910000000002,
+      0.11663514999999999,
+      0.03686385,
+      0.0982008,
+      0.1382002,
+      0.07418084999999999,
+      -0.012076950000000001,
+      0.08302564999999999,
+      0.11773375,
+      -0.03194285,
+      0.1989142,
+      0.0982497,
+      0.18676835,
+      -0.128105,
+      0.14178225000000003,
+      0.1272285,
+      0.1160097
+    ]
+  },
+  "monte_carlo": {
+    "model": "monte_carlo",
+    "paths": 20000,
+    "horizon_years": 12,
+    "allocation": {
+      "us_equity": 0.45,
+      "bonds": 0.3,
+      "alternatives": 0.15,
+      "cash": 0.1
+    },
+    "starting_value": 2500000.0,
+    "terminal_value": {
+      "p5": 3488894.7871652404,
+      "p10": 3924025.3892937573,
+      "p25": 4731835.703663949,
+      "p50": 5801990.105329439,
+      "p75": 7101993.39086175,
+      "p90": 8494211.364450794,
+      "p95": 9407376.390005996,
+      "mean": 6048223.558931956
+    },
+    "annualized_return_p50": 0.07267892460008785,
+    "prob_preserve_real_value": 0.86905,
+    "prob_double": 0.6875,
+    "real_value_threshold": 4129072.3354744306,
+    "inflation_assumption": 0.042699999999999995
+  },
+  "risk_metrics": {
+    "model": "risk_metrics",
+    "allocation": {
+      "us_equity": 0.45,
+      "bonds": 0.3,
+      "alternatives": 0.15,
+      "cash": 0.1
+    },
+    "risk_free_rate": 0.039,
+    "mean_annual_return": 0.07356741052631581,
+    "annualized_volatility": 0.1018853531889951,
+    "sharpe_ratio": 0.33927752561444235,
+    "sortino_ratio": 0.2604529335645341,
+    "max_drawdown": -0.19013554999999993,
+    "var_95_annual": 0.13430805499999998,
+    "downside_deviation": 0.13272037313317803
+  },
+  "step6": {
+    "independent_cagr_matches": true,
+    "mc_median_plausible": true,
+    "shared_inputs": true
+  },
+  "step8": {
+    "sums_to_100": true,
+    "liquidity_ok": true,
+    "matches_profile": true,
+    "consistent_with_sim": true
+  }
+}
