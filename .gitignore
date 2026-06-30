@@ -30,6 +30,10 @@ dist-ssr
 # Claude session files
 .claude/
 
+# Python
+__pycache__/
+*.pyc
+
 # Misc artifacts
 alignment-check.txt
 server.before-route-fix.js
