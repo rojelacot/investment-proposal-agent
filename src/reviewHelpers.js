@@ -68,7 +68,6 @@ export function recomputeDerivedData(input) {
 }
 
 export function analyzeClientReview(notes, data) {
-  const text = notes.toLowerCase();
 
   const checks = {
     ticker:

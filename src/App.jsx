@@ -343,37 +343,6 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
     }
   }
 
-  async function applyMarketQuoteToProposalData(rawData, notes = "") {
-    let cleaned = applyConcentratedStockFromNotes(rawData, notes);
-
-    const resolvedTicker = await resolveTickerFromNotes(notes, cleaned.ticker);
-
-    if (resolvedTicker) {
-      cleaned.ticker = resolvedTicker;
-    }
-
-    if (!isUsableTicker(cleaned.ticker)) {
-      return forceCollarFromStockPrice(normalizeMillionsForReview(cleaned));
-    }
-
-    const quote = await fetchPreviousClosePrice(cleaned.ticker);
-
-    if (quote?.close) {
-      cleaned = forceCollarFromStockPrice(
-        normalizeMillionsForReview({
-          ...cleaned,
-          ticker: cleaned.ticker,
-          stockPrice: quote.close,
-          priorCloseDate: quote.date,
-          priceSource: quote.source || "Local quote route",
-        })
-      );
-    } else {
-      cleaned = forceCollarFromStockPrice(normalizeMillionsForReview(cleaned));
-    }
-
-    return cleaned;
-  }
 
   function downloadBlob(blob, filename) {
     const url = window.URL.createObjectURL(blob);
@@ -680,42 +649,7 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
 
 
   // STRATEGY_CHECKBOX_OUTPUT_LOGIC_APPLIED
-  function getSelectedProposalModuleLabels() {
-    const labels = {
-      executiveSummary: "Executive Summary",
-      clientProfileGoals: "Client Profile & Goals",
-      recommendedInvestmentApproach: "Recommended Investment Approach",
-      riskManagementOverview: "Risk Management Overview",
-      goalsTimeline: "Goals Timeline",
-      liquidityNeedsReview: "Liquidity Needs Review",
-      taxPlanningOverview: "Tax Planning Overview",
-      incomeExpenseSnapshot: "Income & Expense Snapshot",
-      retirementPlanning: "Retirement Planning",
-      legacyWealthTransfer: "Legacy & Wealth Transfer",
-      estatePlanningReview: "Estate Planning Review",
-      restrictionsImplementationNotes: "Restrictions & Implementation Notes",
-      implementationTimeline: "Implementation Timeline",
-      nextSteps: "Planning Focus",
-    };
 
-    return Object.keys(selectedProposalModules)
-      .filter((key) => selectedProposalModules[key])
-      .map((key) => labels[key]);
-  }
-
-  function getSelectedServiceLabels() {
-    const labels = {
-      retirementPlanning: "Retirement Planning",
-      financialPlanning: "Financial Planning",
-      legacyTransfer: "Legacy / Transfer of Wealth",
-      estatePlanning: "Estate Planning",
-      riskOverview: "Risk Overview",
-    };
-
-    return Object.keys(selectedServices)
-      .filter((key) => selectedServices[key])
-      .map((key) => labels[key]);
-  }
 
   function extractRiskNumberFromText(text = "") {
     const raw = String(text || "");
@@ -766,71 +700,6 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
     return found ? `${found.label} — ${found.mix}` : "Balanced — 50/50";
   }
 
-  function toggleRiskProfile(key) {
-    setSelectedRiskProfile((prev) => (prev === key ? "" : key));
-  }
-
-  function hasSelectedRiskProfile() {
-    return !!selectedRiskProfile;
-  }
-
-  function inferRiskProfileKeyFromRecommendation(text = "") {
-    const t = String(text || "").toLowerCase();
-
-    // Highest confidence exact matches.
-    if (t.includes("balanced plus") || /\b60\s*\/\s*40\b/.test(t)) return "balancedPlus";
-    if (t.includes("balanced") || /\b50\s*\/\s*50\b/.test(t)) return "balanced";
-    if (t.includes("growth plus") || /\b80\s*\/\s*20\b/.test(t)) return "growthPlus";
-    if (t.includes("growth") || /\b70\s*\/\s*30\b/.test(t)) return "growth";
-    if (t.includes("conservative plus") || /\b40\s*\/\s*60\b/.test(t)) return "conservativePlus";
-    if (t.includes("moderately conservative") || /\b30\s*\/\s*70\b/.test(t)) return "moderatelyConservative";
-    if (t.includes("conservative") || /\b20\s*\/\s*80\b/.test(t)) return "conservative";
-
-    // Only use aggressive if explicitly recommended, not if it appears in a menu.
-    if (/\brecommend(?:ed|s|ation)?[^.\\n]{0,80}\baggressive\b/.test(t) || /\b100\s*\/\s*0\b/.test(t)) {
-      return "aggressive";
-    }
-
-    return "";
-  }
-
-
-
-
-
-  function inferPortfolioStrategyKeyFromRecommendation(text = "") {
-    const t = String(text || "").toLowerCase();
-
-    // Priority rule:
-    // Select Liquidity must win over Core Private if both appear anywhere.
-    // This prevents generic/core menu text from overriding the actual recommendation.
-    if (t.includes("select liquidity") && t.includes("us bias")) return "selectLiquidityUsBias";
-    if (t.includes("select liquidity")) return "selectLiquidity";
-
-    if (t.includes("traditional") && t.includes("us bias")) return "traditionalUsBias";
-    if (t.includes("focused b") || t.includes("focused-b")) return "focusedB";
-
-    // Core Private only if it appears as the explicit recommended strategy.
-    if (
-      t.includes("recommended strategy: core private") ||
-      t.includes("recommend core private") ||
-      t.includes("recommended approach: core private") ||
-      t.includes("model strategy: core private")
-    ) {
-      return "corePrivate";
-    }
-
-    if (
-      t.includes("recommended strategy: traditional") ||
-      t.includes("recommend traditional") ||
-      t.includes("recommended approach: traditional") ||
-      t.includes("model strategy: traditional")
-    ) {
-      return "traditional";
-    }
-
-    return "";
-  }
 
 
 
@@ -838,16 +707,13 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
 
 
 
-  function makeOnlyPortfolioStrategySelection(key) {
-    return {
-      corePrivate: key === "corePrivate",
-      selectLiquidity: key === "selectLiquidity",
-      traditional: key === "traditional",
-      focusedB: key === "focusedB",
-      selectLiquidityUsBias: key === "selectLiquidityUsBias",
-      traditionalUsBias: key === "traditionalUsBias",
-    };
-  }
+
+
+
+
+
+
+
 
 
 
@@ -871,9 +737,6 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
     }
   }, [reviewData?.ticker, selectedStrategies?.collar]);
 
-  function getSelectedRiskProfileLabel() {
-    return getRiskProfileDisplay(selectedRiskProfile);
-  }
 
   function recommendInvestmentApproach(data = {}, notes = "") {
     const text = String(notes || "").toLowerCase();
@@ -1144,20 +1007,6 @@ function resolveClientTickerFromNotes(notesText = "", fallbackTicker = "") {
   }
 
 
-function getSelectedPortfolioStrategyLabels() {
-    const labels = {
-      corePrivate: "Core Private",
-      selectLiquidity: "Select Liquidity",
-      traditional: "Traditional",
-      focusedB: "Focused B",
-      selectLiquidityUsBias: "Select Liquidity (US Bias)",
-      traditionalUsBias: "Traditional (US Bias)",
-    };
-
-    return Object.keys(selectedPortfolioStrategies)
-      .filter((key) => selectedPortfolioStrategies[key])
-      .map((key) => labels[key]);
-  }
 
   function getSelectedStrategyLabels() {
     const labels = {
@@ -1171,12 +1020,6 @@ function getSelectedPortfolioStrategyLabels() {
       .map((key) => labels[key]);
   }
 
-  function toggleStrategy(key) {
-    setSelectedStrategies((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  }
 
   function getAssumptionsList(data) {
     const assumptions = [
@@ -1426,7 +1269,7 @@ function getSelectedPortfolioStrategyLabels() {
 
   function runAgent() {
     if (!notes.trim()) {
-      alert("Paste client notes first.");
+      alert("Please paste the client’s notes into the box above before running the agent.");
       return;
     }
 
@@ -1863,7 +1706,7 @@ function getSelectedPortfolioStrategyLabels() {
 
   async function downloadWord() {
     if (!proposal) {
-      alert("Run the agent first.");
+      alert("No proposal yet — click “Run Agent” to generate one before downloading.");
       return;
     }
 
@@ -1990,15 +1833,15 @@ function getSelectedPortfolioStrategyLabels() {
       setStatus("Concise 1–2 page Word memo downloaded.");
     } catch (error) {
       console.error(error);
-      alert("Word document failed. Open Inspect → Console to see the error.");
-      setStatus("Word document failed.");
+      alert(`Couldn't create the Word memo: ${error?.message || error}. Your proposal is still on screen — try the download again, or use the PowerPoint export instead.`);
+      setStatus("Word memo failed — see the message for details.");
     }
   }
 
 
 
   async function downloadPowerPoint() {
-    if (!proposal) { alert("Run the agent first."); return; }
+    if (!proposal) { alert("No proposal yet — click “Run Agent” to generate one before downloading."); return; }
     try {
       setStatus("Creating PowerPoint...");
 
@@ -2102,7 +1945,7 @@ function getSelectedPortfolioStrategyLabels() {
       setStatus("PowerPoint downloaded.");
     } catch (error) {
       console.error("PowerPoint generation error:", error);
-      alert("PowerPoint failed: " + (error?.message || error));
+      alert(`Couldn't create the PowerPoint: ${error?.message || error}. Your proposal is still on screen — try again, or use the Word export instead.`);
       setStatus("PowerPoint failed.");
     }
   }

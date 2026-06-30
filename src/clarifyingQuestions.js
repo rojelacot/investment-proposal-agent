@@ -62,7 +62,6 @@ export const requiredFields = [
 ];
 
 export function detectMissingInfo(notes) {
-  const text = notes.toLowerCase();
 
   // Risk number
   const hasRiskNumber =

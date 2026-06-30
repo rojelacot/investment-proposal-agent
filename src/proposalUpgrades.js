@@ -105,7 +105,6 @@ export function recomputeReviewedData(input) {
 }
 
 export function getProposalQuality(notes, data) {
-  const text = notes.toLowerCase();
 
   const checks = [
     {

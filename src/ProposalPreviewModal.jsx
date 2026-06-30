@@ -36,7 +36,8 @@ function Row({ label, value, sub, highlight, field, localData, onChange, placeho
       cursor: isEditable && !showInput ? "pointer" : "default",
     }}>
       <span style={{ fontSize: 12, color: "#6b7a99", flexShrink: 0, marginRight: 8 }}>{label}</span>
-      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
         {showInput ? (
           <input
             autoFocus={editing}
@@ -67,6 +68,8 @@ function Row({ label, value, sub, highlight, field, localData, onChange, placeho
             <span onClick={startEdit} style={{ fontSize: 10, color: "#9bacc8", userSelect: "none" }}>✏</span>
           </>
         )}
+        </div>
+        <RowSub sub={sub} />
       </div>
     </div>
   );
