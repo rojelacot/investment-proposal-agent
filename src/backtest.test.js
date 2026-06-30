@@ -300,6 +300,11 @@ describe("summarizeReturns", () => {
     expect(s.growthSeries).toHaveLength(4);
     expect(s.growthSeries[0].value).toBe(10000);
     expect(s.growthSeries[3].value).toBeCloseTo(9240, 6);
+    // Baseline is anchored one month BEFORE the first return (no duplicate date),
+    // and crosses the year boundary correctly.
+    expect(s.growthSeries[0].date).toBe("2019-12");
+    expect(s.growthSeries[1].date).toBe("2020-01");
+    expect(new Set(s.growthSeries.map((p) => p.date)).size).toBe(4);
   });
 
   it("tracks max drawdown across a new peak (uses running peak, not global)", () => {

@@ -1299,38 +1299,11 @@ export async function generatePowerPoint({
       // CRT_LIFETIME_AND_COMPARISON_SLIDES
       // =========================
       {
-        const moneyM = (v) => {
-          const n = Number(v || 0);
-          if (n >= 1000) return `$${(n / 1000).toFixed(1)}B`;
-          if (n >= 1) return `$${n.toFixed(1)}M`;
-          return `$${Math.round(n * 1000)}K`;
-        };
-
         const cleanData = data;
         const stockValue = Number(cleanData.stockPosition || 0);
         const crtAmount = Number(cleanData.crtAllocation || stockValue * 0.32 || 0);
         const payoutRate = Number(cleanData.crtPayoutRate || 5);
-        const growthRate = 7.5;
         const taxRate = Number(cleanData.totalTaxRate || cleanData.taxRate || 37.1);
-        const deduction = Number(cleanData.charitableDeductionHigh || crtAmount * 0.37 || 0);
-        const yr1Income = crtAmount * (payoutRate / 100);
-
-        let balance = crtAmount;
-        let cumulativeIncome = 0;
-        const points = [];
-
-        for (let yr = 1; yr <= 30; yr++) {
-          const income = balance * (payoutRate / 100);
-          cumulativeIncome += income;
-          balance = Math.max(0, (balance - income) * (1 + growthRate / 100));
-
-          if ([1, 5, 10, 15, 20, 25, 30].includes(yr)) {
-            points.push({ yr, balance, cumulativeIncome });
-          }
-        }
-
-        const endingBalance = points[points.length - 1]?.balance || balance;
-        const totalIncome = points[points.length - 1]?.cumulativeIncome || cumulativeIncome;
 
         // Slide 2: CRT vs Outright Sale
         // Rebuilt as Beacon-style spreadsheet table from sample CRT proposal
@@ -1346,11 +1319,6 @@ export async function generatePowerPoint({
 
         const fmtWholeDollar = (v) => {
           const n = Math.round(Number(v || 0) * 1000000);
-          return n.toLocaleString();
-        };
-
-        const fmtWholeDollarRaw = (v) => {
-          const n = Math.round(Number(v || 0));
           return n.toLocaleString();
         };
 
@@ -3863,7 +3831,7 @@ export async function generatePowerPoint({
           const estateManagedAssets =
             Number(data.managedAssets || data.investableAssets || 0) ||
             extractEstateMoneyFromNotes([
-              /Managed Assets\s*[:\-]?\s*\$?([\d,]+(?:\.\d+)?)/i,
+              /Managed Assets\s*[:-]?\s*\$?([\d,]+(?:\.\d+)?)/i,
               /Managed Investment Assets\s*\$?([\d,]+(?:\.\d+)?)/i,
             ]);
 
@@ -3890,7 +3858,7 @@ export async function generatePowerPoint({
           const estateNetWorth =
             Number(data.netWorth || 0) ||
             extractEstateMoneyFromNotes([
-              /Estimated Net Worth\s*[:\-]?\s*\$?([\d,]+(?:\.\d+)?)/i,
+              /Estimated Net Worth\s*[:-]?\s*\$?([\d,]+(?:\.\d+)?)/i,
               /Total Net Worth\s*\$?([\d,]+(?:\.\d+)?)/i,
             ]);
 

@@ -10,6 +10,15 @@
 
 const NON_TRADABLE = new Set(["", "SMA", "N/A", "CUSTOM"]);
 
+/** Returns the "YYYY-MM" of the month immediately before `ym`. Used to anchor a
+ *  growth series' $10k baseline one month BEFORE the first return, so the first
+ *  return isn't drawn as a zero-width segment on the same date as the baseline. */
+function prevMonth(ym) {
+  const [y, m] = String(ym).split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 2, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
 function isTradable(ticker) {
   return !!ticker && !NON_TRADABLE.has(String(ticker).trim().toUpperCase());
 }
@@ -239,7 +248,7 @@ export function summarizeReturns(monthlyReturns, riskFreeRate = 0.04) {
   let value = 10000;
   let peak = value;
   let maxDrawdown = 0;
-  const growthSeries = [{ date: monthlyReturns[0].date, value }];
+  const growthSeries = [{ date: prevMonth(monthlyReturns[0].date), value }];
   for (const { date, return: r } of monthlyReturns) {
     value *= 1 + r;
     peak = Math.max(peak, value);

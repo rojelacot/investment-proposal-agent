@@ -325,9 +325,9 @@ const GENERIC_TICKERS = new Set(["", "N/A", "SMA", "CUSTOM", "UMA ONLY!"]);
 
 function normalizeName(name) {
   return (name || "")
-    .replace(/^\[\s*pass\w*\s*[\]\}]\s*/i, "") // strip leading [Passive]/[Passve]/[Passive} prefix
+    .replace(/^\[\s*pass\w*\s*[\]}]\s*/i, "") // strip leading [Passive]/[Passve]/[Passive} prefix
     .replace(/\s*\([^)]*\)\s*$/, "")            // strip trailing "(TICKER)"
-    .replace(/ /g, " ")
+    .replace(/\u00A0/g, " ")
     .trim()
     .toLowerCase();
 }

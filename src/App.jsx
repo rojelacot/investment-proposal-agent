@@ -253,7 +253,7 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
     const text = String(notes || "");
 
     const patterns = [
-      /\b(?:ticker|symbol)\s*[:\-]?\s*([A-Z]{1,5})\b/i,
+      /\b(?:ticker|symbol)\s*[:-]?\s*([A-Z]{1,5})\b/i,
       /\(([A-Z]{1,5})\)/,
       /\b([A-Z]{1,5})\b\s+(?:stock|shares|position|holding|holdings|concentration)\b/i,
       /(?:stock|shares|position|holding|holdings|concentration)\s+(?:in|of)\s+\b([A-Z]{1,5})\b/i,
@@ -479,7 +479,7 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
     // Extract client age for age-based CRT deduction
     const currentYear = new Date().getFullYear();
     let clientAge = 65; // default
-    const ageMatch = text.match(/\bage[d]?\s*[:\-]?\s*(\d{2})\b/i)
+    const ageMatch = text.match(/\bage[d]?\s*[:-]?\s*(\d{2})\b/i)
       || text.match(/(\d{2})\s+years?\s+old/i)
       || text.match(/client\s+is\s+(\d{2})\s+years?/i);
     if (ageMatch) { const a = parseInt(ageMatch[1]); if (a >= 35 && a <= 90) clientAge = a; }
@@ -526,8 +526,6 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
     if (!stockPosition && allMoney.length >= 1) stockPosition = allMoney[allMoney.length - 1];
     if (!investableAssets && allMoney.length >= 2) investableAssets = allMoney[1];
     if (!netWorth && allMoney.length >= 1) netWorth = allMoney[0];
-
-    const percentages = [...text.matchAll(/([\d.]+)%/g)].map((m) => parseFloat(m[1]));
 
     const concentrationMatch =
       text.match(/portfolio concentration[^%\d]*([\d.]+)%/i) ||
@@ -965,8 +963,10 @@ const [selectedPortfolioStrategies, setSelectedPortfolioStrategies] = useState({
       riskProfile = shiftRiskProfile(riskProfile, -1);
     }
 
-    let portfolioKey = "traditional";
-    let modelReason = "Traditional is the default when the proposal emphasizes liquidity, simplicity, and no dedicated alternative allocation.";
+    // Both are always assigned by the if/else chain below (terminal else covers
+    // the default), so no initializer is needed here.
+    let portfolioKey;
+    let modelReason;
 
     if (focused) {
       portfolioKey = "focusedB";
@@ -1102,8 +1102,8 @@ function resolveClientTickerFromNotes(notesText = "", fallbackTicker = "") {
 
     // 1. Explicit ticker fields should win.
     const explicitPatterns = [
-      /(?:ticker|symbol|stock ticker|public ticker)\s*[:\-]\s*([A-Z]{1,5}(?:[.\-][A-Z])?)/i,
-      /(?:concentrated position|single[-\s]?stock position|stock position)\s*[:\-]\s*([A-Z]{1,5}(?:[.\-][A-Z])?)/i,
+      /(?:ticker|symbol|stock ticker|public ticker)\s*[:-]\s*([A-Z]{1,5}(?:[.-][A-Z])?)/i,
+      /(?:concentrated position|single[-\s]?stock position|stock position)\s*[:-]\s*([A-Z]{1,5}(?:[.-][A-Z])?)/i,
       /(?:NVIDIA|Nvidia)\s*(?:Corp|Corporation)?\s*\(?\s*(NVDA)\s*\)?/i,
       /(?:Apple)\s*(?:Inc)?\s*\(?\s*(AAPL)\s*\)?/i,
       /(?:Microsoft)\s*(?:Corp|Corporation)?\s*\(?\s*(MSFT)\s*\)?/i,
@@ -1141,12 +1141,6 @@ function resolveClientTickerFromNotes(notesText = "", fallbackTicker = "") {
     if (fallback) return fallback;
 
     return "";
-  }
-
-
-function cleanProposalTicker(value, notesText = "") {
-    const resolved = resolveClientTickerFromNotes(notesText, value);
-    return resolved || "";
   }
 
 
@@ -1333,7 +1327,7 @@ function getSelectedPortfolioStrategyLabels() {
     }
 
     const patterns = [
-      /\b(?:ticker|symbol)\s*[:\-]?\s*([A-Z]{2,5})\b/i,
+      /\b(?:ticker|symbol)\s*[:-]?\s*([A-Z]{2,5})\b/i,
       /\b([A-Z]{2,5})\b\s+(?:stock|shares|position|holding|holdings|concentration)\b/i,
       /(?:stock|shares|position|holding|holdings|concentration)\s+(?:in|of)\s+\b([A-Z]{2,5})\b/i,
     ];
@@ -1876,29 +1870,9 @@ function getSelectedPortfolioStrategyLabels() {
     try {
       setStatus("Creating concise 1–2 page Word memo...");
 
-      const { name, notes, data } = proposal;
+      const { name, data } = proposal;
       const assumptions = proposal.assumptions || getAssumptionsList(data);
       const strategyLabels = proposal.selectedStrategyLabels || getSelectedStrategyLabels();
-
-      const concentrationPctForPpt =
-        Number(data.concentration) > 1
-          ? Number(data.concentration)
-          : Number(data.concentration || 0) * 100;
-
-      const isHighConcentrationClient =
-        concentrationPctForPpt >= 25 &&
-        Number(data.stockPosition || 0) > 0 &&
-        !!data.ticker;
-
-      const hasConcentratedStockStrategy =
-        !!selectedStrategies?.crt ||
-        !!selectedStrategies?.harvesting ||
-        !!selectedStrategies?.collar;
-
-      const includeConcentratedStockSlides =
-        isHighConcentrationClient && hasConcentratedStockStrategy;
-
-      // Normal-client branch removed. Using concentrated-stock deck only.
 
 
       const bullet = (txt) =>

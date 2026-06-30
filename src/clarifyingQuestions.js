@@ -72,7 +72,7 @@ export function detectMissingInfo(notes) {
 
   // Age: must have an actual number, not just the word "age"
   const hasClientAge =
-    /\bage[d]?\s*[:\-]?\s*\d{2}\b/i.test(notes) ||
+    /\bage[d]?\s*[:-]?\s*\d{2}\b/i.test(notes) ||
     /\d{2}\s+years?\s+old/i.test(notes) ||
     /client\s+is\s+\d{2}\s+years?/i.test(notes) ||
     /\d{2}\s*[-–]\s*year[-\s]old/i.test(notes) ||
