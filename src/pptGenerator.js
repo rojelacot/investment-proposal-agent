@@ -10,12 +10,6 @@ import { runMonteCarlo } from "./monteCarlo";
 import { stressTest } from "./stressTest";
 import { computeImpactScorecard } from "./impactScorecard";
 
-async function loadSvgDataUri(publicPath) {
-  const response = await fetch(publicPath);
-  if (!response.ok) throw new Error(`Could not load SVG visual: ${publicPath}`);
-  const svgText = await response.text();
-  return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgText)));
-}
 
 async function captureHtmlSlideAsPng(html) {
   const wrapper = document.createElement("div");
@@ -52,12 +46,8 @@ export async function generatePowerPoint({
   selectedProposalModules = {},
   selectedPortfolioStrategies = {},
   selectedRiskProfile = "",
-  selectedServices = {},
   includePortfolioStrategySlides = true,
   includeConcentratedStockSlides = false,
-  clientType = "",
-  strategyLabels = [],
-  assumptions = [],
   riskNumber = null,
   fundSwaps = {},
   backtest = null,
@@ -103,6 +93,14 @@ export async function generatePowerPoint({
       pptx.author = "Investment Proposal Agent";
       pptx.subject = "Concentrated Stock Investment Proposal";
       pptx.title = `${name} Styled Investment Proposal`;
+
+      // Typography: serif headings, sans body + sans chart labels. Centralized
+      // here so the deck stays consistent — previously most text fell back to the
+      // pptxgenjs Arial default while a handful set Georgia ad hoc. Setting the
+      // theme makes Arial the intentional body default; headings pass HEAD_FONT.
+      const HEAD_FONT = "Georgia";
+      const BODY_FONT = "Arial";
+      pptx.theme = { headFontFace: HEAD_FONT, bodyFontFace: BODY_FONT };
 
       // Beacon Pointe brand palette (sampled from the logo): slate-blue primary,
       // orange + sage-green accents. Semantic roles preserved (gold→orange accent,
@@ -166,7 +164,7 @@ export async function generatePowerPoint({
           y: 0.62,
           w: 11.7,
           h: 0.55,
-          fontFace: "Georgia",
+          fontFace: HEAD_FONT,
           fontSize: 26,
           bold: true,
           color: C.navy,
@@ -231,7 +229,7 @@ export async function generatePowerPoint({
           y: y + 0.10,
           w: w - 0.16,
           h: 0.26,
-          fontFace: "Georgia",
+          fontFace: HEAD_FONT,
           fontSize: 16,
           bold: true,
           align: "center",
@@ -316,118 +314,6 @@ export async function generatePowerPoint({
         });
       }
 
-      function hCompare(slide, x, y, label, withoutVal, withVal, formatter, note = "") {
-        const maxVal = Math.max(withoutVal, withVal, 1);
-        const trackW = 5.0;
-
-        slide.addText(label, {
-          x,
-          y,
-          w: 3.7,
-          h: 0.18,
-          fontSize: 9.2,
-          bold: true,
-          color: C.text,
-          margin: 0,
-        });
-
-        slide.addText("Without strategy", {
-          x,
-          y: y + 0.28,
-          w: 1.35,
-          h: 0.16,
-          fontSize: 7.2,
-          color: C.muted,
-          margin: 0,
-        });
-
-        slide.addShape(pptx.ShapeType.roundRect, {
-          x: x + 1.6,
-          y: y + 0.30,
-          w: trackW,
-          h: 0.16,
-          rectRadius: 0.08,
-          fill: { color: C.lightBar },
-          line: { color: C.lightBar },
-        });
-
-        slide.addShape(pptx.ShapeType.roundRect, {
-          x: x + 1.6,
-          y: y + 0.30,
-          w: Math.max(0.12, trackW * (withoutVal / maxVal)),
-          h: 0.16,
-          rectRadius: 0.08,
-          fill: { color: C.coral },
-          line: { color: C.coral },
-        });
-
-        slide.addText(formatter(withoutVal), {
-          x: x + 6.8,
-          y: y + 0.25,
-          w: 1.0,
-          h: 0.18,
-          fontSize: 8,
-          bold: true,
-          color: C.coral,
-          align: "right",
-          margin: 0,
-        });
-
-        slide.addText("With strategy", {
-          x,
-          y: y + 0.60,
-          w: 1.35,
-          h: 0.16,
-          fontSize: 7.2,
-          color: C.muted,
-          margin: 0,
-        });
-
-        slide.addShape(pptx.ShapeType.roundRect, {
-          x: x + 1.6,
-          y: y + 0.62,
-          w: trackW,
-          h: 0.16,
-          rectRadius: 0.08,
-          fill: { color: C.lightBar },
-          line: { color: C.lightBar },
-        });
-
-        slide.addShape(pptx.ShapeType.roundRect, {
-          x: x + 1.6,
-          y: y + 0.62,
-          w: Math.max(0.12, trackW * (withVal / maxVal)),
-          h: 0.16,
-          rectRadius: 0.08,
-          fill: { color: C.teal },
-          line: { color: C.teal },
-        });
-
-        slide.addText(formatter(withVal), {
-          x: x + 6.8,
-          y: y + 0.57,
-          w: 1.0,
-          h: 0.18,
-          fontSize: 8,
-          bold: true,
-          color: C.teal,
-          align: "right",
-          margin: 0,
-        });
-
-        if (note) {
-          slide.addText(note, {
-            x,
-            y: y + 0.93,
-            w: 7.8,
-            h: 0.15,
-            fontSize: 7,
-            color: C.muted,
-            margin: 0,
-            fit: "shrink",
-          });
-        }
-      }
 
 
       // Rasterize the SVG to a high-res PNG (3x) before embedding — PowerPoint
@@ -460,129 +346,7 @@ export async function generatePowerPoint({
         }
       }
 
-      function makeHarvestSvg(data) {
-        const longOnly = [11, 18, 26, 34, 41, 47, 53, 58, 63, 67];
-        const enhanced = [22, 42, 61, 79, 97, 114, 131, 148, 164, 180];
-        const labels = ["Y1","Y2","Y3","Y4","Y5","Y6","Y7","Y8","Y9","Y10"];
-        const maxVal = 190;
 
-        function pt(i, val) {
-          const x = 70 + (i / (labels.length - 1)) * 820;
-          const y = 285 - (val / maxVal) * 235;
-          return `${x},${y}`;
-        }
-
-        const longPts = longOnly.map((v, i) => pt(i, v)).join(" ");
-        const enhPts = enhanced.map((v, i) => pt(i, v)).join(" ");
-
-        const grid = [0,50,100,150].map(v => {
-          const y = 285 - (v / maxVal) * 235;
-          return `<line x1="70" y1="${y}" x2="890" y2="${y}" stroke="#E5E8EF" stroke-width="1"/>
-                  <text x="55" y="${y+4}" text-anchor="end" font-size="12" fill="#6E7E8A">${v}%</text>`;
-        }).join("");
-
-        const xLabels = labels.map((l, i) => {
-          const x = 70 + (i / (labels.length - 1)) * 820;
-          return `<text x="${x}" y="315" text-anchor="middle" font-size="11" fill="#6E7E8A">${l}</text>`;
-        }).join("");
-
-        return `
-          <svg xmlns="http://www.w3.org/2000/svg" width="960" height="350" viewBox="0 0 960 350">
-            <rect width="960" height="350" fill="#FFFFFF"/>
-            ${grid}
-            <line x1="70" y1="285" x2="890" y2="285" stroke="#D5DAE5"/>
-            <line x1="70" y1="50" x2="70" y2="285" stroke="#D5DAE5"/>
-
-            <polyline points="${longPts}" fill="none" stroke="#4D738A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            <polyline points="${enhPts}" fill="none" stroke="#F48B1F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-
-            <line x1="630" y1="25" x2="670" y2="25" stroke="#F48B1F" stroke-width="4"/>
-            <text x="680" y="30" font-size="13" fill="#2A3440">130/30 Enhanced</text>
-            <line x1="630" y1="48" x2="670" y2="48" stroke="#4D738A" stroke-width="4"/>
-            <text x="680" y="53" font-size="13" fill="#2A3440">Long-Only</text>
-
-            ${xLabels}
-          </svg>
-        `;
-      }
-
-      function makeCollarSvg(data) {
-        const shares = Math.round((data.collarAllocation * 1000000) / Math.max(data.stockPrice, 1));
-        const minPrice = Math.max(5, Math.round(data.stockPrice * 0.45));
-        const maxPrice = Math.round(data.stockPrice * 1.65);
-
-        const points = [];
-        for (let i = 0; i < 25; i++) {
-          points.push(minPrice + ((maxPrice - minPrice) * i) / 24);
-        }
-
-        function underlyingValue(price) {
-          return (price * shares) / 1000000;
-        }
-
-        function collarValue(price) {
-          const effectivePrice = Math.max(data.putStrike, Math.min(price, data.callStrike));
-          return (effectivePrice * shares) / 1000000;
-        }
-
-        const underlying = points.map(underlyingValue);
-        const collar = points.map(collarValue);
-        const maxVal = Math.max(...underlying, ...collar) * 1.12;
-
-        function pt(price, value) {
-          const x = 80 + ((price - minPrice) / (maxPrice - minPrice)) * 800;
-          const y = 285 - (value / maxVal) * 235;
-          return `${x},${y}`;
-        }
-
-        const underlyingPts = points.map((p, i) => pt(p, underlying[i])).join(" ");
-        const collarPts = points.map((p, i) => pt(p, collar[i])).join(" ");
-
-        const grid = [0, .25, .5, .75, 1].map(r => {
-          const val = maxVal * r;
-          const y = 285 - r * 235;
-          return `<line x1="80" y1="${y}" x2="880" y2="${y}" stroke="#E5E8EF" stroke-width="1"/>
-                  <text x="65" y="${y+4}" text-anchor="end" font-size="11" fill="#6E7E8A">${fmtM(val)}</text>`;
-        }).join("");
-
-        const priceTicks = [minPrice, data.putStrike, data.stockPrice, data.callStrike, maxPrice];
-        const xLabels = priceTicks.map(v => {
-          const x = 80 + ((v - minPrice) / (maxPrice - minPrice)) * 800;
-          return `<text x="${x}" y="315" text-anchor="middle" font-size="11" fill="#6E7E8A">$${Math.round(v)}</text>`;
-        }).join("");
-
-        const putX = 80 + ((data.putStrike - minPrice) / (maxPrice - minPrice)) * 800;
-        const callX = 80 + ((data.callStrike - minPrice) / (maxPrice - minPrice)) * 800;
-
-        return `
-          <svg xmlns="http://www.w3.org/2000/svg" width="960" height="350" viewBox="0 0 960 350">
-            <rect width="960" height="350" fill="#FFFFFF"/>
-            ${grid}
-            <line x1="80" y1="285" x2="880" y2="285" stroke="#D5DAE5"/>
-            <line x1="80" y1="50" x2="80" y2="285" stroke="#D5DAE5"/>
-
-            <rect x="80" y="50" width="${Math.max(0, putX-80)}" height="235" fill="#F6E7E4" opacity="0.65"/>
-            <rect x="${putX}" y="50" width="${Math.max(0, callX-putX)}" height="235" fill="#F5EDDA" opacity="0.65"/>
-            <rect x="${callX}" y="50" width="${Math.max(0, 880-callX)}" height="235" fill="#E6EDF1" opacity="0.65"/>
-
-            <polyline points="${underlyingPts}" fill="none" stroke="#5D87B9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            <polyline points="${collarPts}" fill="none" stroke="#2E4A5A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-
-            <line x1="${putX}" y1="50" x2="${putX}" y2="285" stroke="#C0504A" stroke-width="2" stroke-dasharray="5,4"/>
-            <line x1="${callX}" y1="50" x2="${callX}" y2="285" stroke="#4D738A" stroke-width="2" stroke-dasharray="5,4"/>
-
-            <text x="${putX}" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#C0504A">Put $${Math.round(data.putStrike)}</text>
-            <text x="${callX}" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#4D738A">Call $${Math.round(data.callStrike)}</text>
-
-            <line x1="610" y1="25" x2="650" y2="25" stroke="#5D87B9" stroke-width="4"/>
-            <text x="660" y="30" font-size="13" fill="#2A3440">Underlying</text>
-            <line x1="760" y1="25" x2="800" y2="25" stroke="#2E4A5A" stroke-width="4"/>
-            <text x="810" y="30" font-size="13" fill="#2A3440">Protective Collar</text>
-
-            ${xLabels}
-          </svg>
-        `;
-      }
 
       // ── Portfolio Transformation stacked-bar SVG ──────────────────────────
       function makeAfterPortfolioSvg(data, strats) {
@@ -603,7 +367,7 @@ export async function generatePowerPoint({
 
         function bar(y, total, segs) {
           let out = "", cx = bx;
-          for (const { val, col, lbl } of segs) {
+          for (const { val, col } of segs) {
             if (!val || !total) continue;
             const sw = (val / total) * bw;
             out += `<rect x="${cx}" y="${y}" width="${sw}" height="${barH}" fill="#${col}"/>`;
@@ -710,11 +474,6 @@ export async function generatePowerPoint({
       }
 
 
-      const afterCrtStock = Math.max(data.stockPosition - data.crtAllocation, 0);
-      const uncollaredRemaining = Math.max(afterCrtStock - data.collarAllocation, 0);
-      const collaredLoss = data.collarAllocation * 0.15;
-      const uncollaredLoss = uncollaredRemaining * 0.4;
-      const withDownside = collaredLoss + uncollaredLoss;
 
 
 
@@ -748,7 +507,7 @@ export async function generatePowerPoint({
         y: 1.5,
         w: 6.7,
         h: 0.9,
-        fontFace: "Georgia",
+        fontFace: HEAD_FONT,
         fontSize: 34,
         bold: true,
         color: C.white,
@@ -794,7 +553,7 @@ export async function generatePowerPoint({
       // Right panel — firm brand block, vertically centered
       slide.addText((firmName || "Meridian Wealth Partners").toUpperCase(), {
         x: 8.1, y: 3.2, w: 4.5, h: 0.5,
-        fontFace: "Georgia", fontSize: 16, bold: true, color: C.white, charSpace: 1, align: "center", margin: 0, fit: "shrink",
+        fontFace: HEAD_FONT, fontSize: 16, bold: true, color: C.white, charSpace: 1, align: "center", margin: 0, fit: "shrink",
       });
       slide.addShape(pptx.ShapeType.line, {
         x: 9.55, y: 3.86, w: 1.6, h: 0,
@@ -993,7 +752,7 @@ export async function generatePowerPoint({
           angle += sweep;
           return seg;
         }).join("");
-        return `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"><rect width="500" height="500" fill="#FFFFFF"/>${segs}<circle cx="${cx}" cy="${cy}" r="${innerR - 3}" fill="#FFFFFF"/><text x="${cx}" y="${cy - 6}" text-anchor="middle" font-family="Georgia" font-size="38" font-weight="700" fill="#2E4A5A">${centerLabel}</text><text x="${cx}" y="${cy + 27}" text-anchor="middle" font-family="Inter, Arial" font-size="14" fill="#6E7E8A">${subLabel}</text></svg>`;
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"><rect width="500" height="500" fill="#FFFFFF"/>${segs}<circle cx="${cx}" cy="${cy}" r="${innerR - 3}" fill="#FFFFFF"/><text x="${cx}" y="${cy - 6}" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#2E4A5A">${centerLabel}</text><text x="${cx}" y="${cy + 27}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#6E7E8A">${subLabel}</text></svg>`;
       }
       await addSvg(slide, makeTrueDonutSvg(
         breakdown,
@@ -1152,7 +911,7 @@ export async function generatePowerPoint({
         slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: cy, w: apCardW, h: apCardH, rectRadius: 0.08, fill: { color: strat.fill }, line: { color: C.border, width: 0.7 } });
         slide.addShape(pptx.ShapeType.rect, { x: cx, y: cy, w: 0.06, h: apCardH, fill: { color: strat.color }, line: { color: strat.color } });
 
-        slide.addText(strat.stat, { x: cx + 0.18, y: cy + 0.13, w: apCardW - 0.26, h: 0.27, fontFace: "Georgia", fontSize: 15, bold: true, color: strat.color, margin: 0, fit: "shrink" });
+        slide.addText(strat.stat, { x: cx + 0.18, y: cy + 0.13, w: apCardW - 0.26, h: 0.27, fontFace: HEAD_FONT, fontSize: 15, bold: true, color: strat.color, margin: 0, fit: "shrink" });
         slide.addText(strat.statLabel.toUpperCase(), { x: cx + 0.18, y: cy + 0.43, w: apCardW - 0.26, h: 0.13, fontSize: 6, bold: true, color: C.muted, charSpace: 0.8, margin: 0 });
         slide.addText(strat.title, { x: cx + 0.18, y: cy + 0.60, w: apCardW - 0.26, h: 0.18, fontSize: 9.5, bold: true, color: C.navy, margin: 0, fit: "shrink" });
         slide.addShape(pptx.ShapeType.line, { x: cx + 0.18, y: cy + 0.82, w: apCardW - 0.36, h: 0, line: { color: C.border, width: 0.5 } });
@@ -2444,108 +2203,9 @@ export async function generatePowerPoint({
           return `${Number(v || 0).toFixed(1)}%`;
         }
 
-        function piePath(cx, cy, r, startAngle, endAngle) {
-          const start = polarToCartesian(cx, cy, r, endAngle);
-          const end = polarToCartesian(cx, cy, r, startAngle);
-          const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-          return [
-            "M", cx, cy,
-            "L", start.x, start.y,
-            "A", r, r, 0, largeArcFlag, 0, end.x, end.y,
-            "Z",
-          ].join(" ");
-        }
 
-        function polarToCartesian(cx, cy, r, angleInDegrees) {
-          const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
-          return {
-            x: cx + r * Math.cos(angleInRadians),
-            y: cy + r * Math.sin(angleInRadians),
-          };
-        }
 
-        function makeAllocationPieSvg(items) {
-          const colors = ["#2E4A5A", "#4D738A", "#E07D1A", "#8A98AD"];
-          const total = items.reduce((sum, item) => sum + Math.max(0, item.value), 0) || 1;
-          let currentAngle = 0;
 
-          const slices = items
-            .filter((item) => item.value > 0)
-            .map((item, i) => {
-              const angle = (item.value / total) * 360;
-              const path = piePath(150, 150, 115, currentAngle, currentAngle + angle);
-              currentAngle += angle;
-              return `<path d="${path}" fill="${colors[i % colors.length]}" stroke="#FFFFFF" stroke-width="2"/>`;
-            })
-            .join("");
-
-          const legend = items
-            .map((item, i) => {
-              const y = 42 + i * 34;
-              return `
-                <rect x="320" y="${y}" width="16" height="16" rx="3" fill="${colors[i % colors.length]}"/>
-                <text x="346" y="${y + 13}" font-size="16" font-family="Arial" fill="#2A3440">${item.label}: ${pctLabel(item.value)}</text>
-              `;
-            })
-            .join("");
-
-          return `
-            <svg xmlns="http://www.w3.org/2000/svg" width="620" height="320" viewBox="0 0 620 320">
-              <rect width="620" height="320" fill="#FFFFFF"/>
-              ${slices}
-              <circle cx="150" cy="150" r="58" fill="#FFFFFF"/>
-              <text x="150" y="142" text-anchor="middle" font-size="15" font-family="Arial" font-weight="700" fill="#2E4A5A">Model</text>
-              <text x="150" y="165" text-anchor="middle" font-size="15" font-family="Arial" font-weight="700" fill="#2E4A5A">Allocation</text>
-              ${legend}
-            </svg>
-          `;
-        }
-
-        function addAllocationBar(slide, x, y, w, label, value, fillColor) {
-          // Label — narrowed to 1.5" so bars + pct labels stay in the left column
-          slide.addText(label, {
-            x,
-            y,
-            w: 1.5,
-            h: 0.22,
-            fontSize: 11,
-            bold: true,
-            color: C.text,
-            margin: 0,
-          });
-
-          // Track background — starts at x+1.65
-          slide.addShape(pptx.ShapeType.rect, {
-            x: x + 1.65,
-            y: y + 0.04,
-            w,
-            h: 0.14,
-            fill: { color: "E8EDF5" },
-            line: { color: "E8EDF5" },
-          });
-
-          // Filled bar
-          slide.addShape(pptx.ShapeType.rect, {
-            x: x + 1.65,
-            y: y + 0.04,
-            w: w * Math.max(0, Math.min(100, value)) / 100,
-            h: 0.14,
-            fill: { color: fillColor },
-            line: { color: fillColor },
-          });
-
-          // Pct label — sits just after the bar, well left of x:7.1
-          slide.addText(pctLabel(value), {
-            x: x + 1.65 + w + 0.1,
-            y,
-            w: 0.6,
-            h: 0.22,
-            fontSize: 11,
-            bold: true,
-            color: C.navy,
-            margin: 0,
-          });
-        }
 
         // ── REAL FUND DATA ──────────────────────────────────────────────
         // Apply any advisor fund substitutions chosen in the preview modal
@@ -2597,7 +2257,6 @@ export async function generatePowerPoint({
         const hasAnySwap     = realFunds.some(f => f.swappedFrom);
         const equityPct      = groupTotals["Equity"]       || 0;
         const fixedIncPct    = groupTotals["Fixed Income"] || 0;
-        const altsPct        = groupTotals["Alternatives"] || 0;
 
         // 6-segment donut SVG — viewBox 530×444 matches slide ratio (4.6 × 3.85)
         // so pptxgenjs won't distort the circle when stretching to fill w/h.
@@ -2620,11 +2279,7 @@ export async function generatePowerPoint({
           const rawTotal  = rawParts.reduce((s, p) => s + p.pct, 0) || 100;
           const parts     = rawParts.map(p => ({ ...p, pct: (p.pct / rawTotal) * 100 }));
 
-          // Center label: total equity % (re-derived from normalized parts)
-          const totalEquityNorm = parts
-            .filter(p => ["Domestic Equity","Intl Developed","Emerging Markets"].includes(p.label))
-            .reduce((s, p) => s + p.pct, 0);
-          // Original (unnormalized) equity total for the label number shown to the advisor
+          // Equity total for the center label number shown to the advisor.
           const totalEquity = (sgt["Domestic Equity"] || 0) + (sgt["Intl Developed"] || 0) + (sgt["Emerging Markets"] || 0);
 
           const cx = 155, cy = 222, outerR = 155, innerR = 74;
@@ -2644,16 +2299,16 @@ export async function generatePowerPoint({
             const ly   = 42 + row * 72;
             return `
               <rect x="${lx}" y="${ly}" width="14" height="14" rx="2" fill="${p.color}"/>
-              <text x="${lx + 18}" y="${ly + 11}" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" fill="#2E4A5A">${p.pct.toFixed(1)}%</text>
-              <text x="${lx + 18}" y="${ly + 24}" font-family="Inter, Arial, sans-serif" font-size="10" fill="#6E7E8A">${p.label}</text>`;
+              <text x="${lx + 18}" y="${ly + 11}" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#2E4A5A">${p.pct.toFixed(1)}%</text>
+              <text x="${lx + 18}" y="${ly + 24}" font-family="Arial, sans-serif" font-size="10" fill="#6E7E8A">${p.label}</text>`;
           }).join("");
 
           return `<svg xmlns="http://www.w3.org/2000/svg" width="530" height="444" viewBox="0 0 530 444">
             <rect width="530" height="444" fill="#FFFFFF"/>
             ${segs}
             <circle cx="${cx}" cy="${cy}" r="${innerR - 4}" fill="#FFFFFF"/>
-            <text x="${cx}" y="${cy - 10}" text-anchor="middle" font-family="Georgia, serif" font-size="32" font-weight="700" fill="#2E4A5A">${totalEquity.toFixed(1)}%</text>
-            <text x="${cx}" y="${cy + 20}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" fill="#6E7E8A">Total Equity</text>
+            <text x="${cx}" y="${cy - 10}" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#2E4A5A">${totalEquity.toFixed(1)}%</text>
+            <text x="${cx}" y="${cy + 20}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#6E7E8A">Total Equity</text>
             ${legendItems}
           </svg>`;
         }
@@ -3552,7 +3207,7 @@ export async function generatePowerPoint({
           slide.addShape(pptx.ShapeType.roundRect, { x: 0.85, y: 4.08, w: 5.8, h: 1.72, rectRadius: 0.08, fill: { color: C.coralPale }, line: { color: C.coral, width: 0.7 } });
           slide.addShape(pptx.ShapeType.rect,      { x: 0.85, y: 4.08, w: 0.06, h: 1.72, fill: { color: C.coral }, line: { color: C.coral } });
           slide.addText("DOWNSIDE  —  30% EQUITY DECLINE", { x: 0.75, y: 4.18, w: 5.4, h: 0.18, fontSize: 7.5, bold: true, color: C.coral, charSpace: 0.8, margin: 0 });
-          slide.addText(`~(${fmtM(downside30)}) estimated impact`, { x: 0.75, y: 4.42, w: 5.4, h: 0.26, fontFace: "Georgia", fontSize: 16, bold: true, color: C.coral, margin: 0 });
+          slide.addText(`~(${fmtM(downside30)}) estimated impact`, { x: 0.75, y: 4.42, w: 5.4, h: 0.26, fontFace: HEAD_FONT, fontSize: 16, bold: true, color: C.coral, margin: 0 });
           slide.addText([
             { text: `• ${selectedRP.equity}% equity × 30% decline on ${fmtM(cleanNumber(data.investableAssets))} investable assets`, options: { bullet: false } },
             { text: `\n• Concentrated position amplifies drawdown until diversification executes`, options: { bullet: false } },
@@ -3562,7 +3217,7 @@ export async function generatePowerPoint({
           slide.addShape(pptx.ShapeType.roundRect, { x: 6.7,  y: 4.08, w: 5.8, h: 1.72, rectRadius: 0.08, fill: { color: C.tealPale }, line: { color: C.teal, width: 0.7 } });
           slide.addShape(pptx.ShapeType.rect,      { x: 6.7,  y: 4.08, w: 0.06, h: 1.72, fill: { color: C.teal }, line: { color: C.teal } });
           slide.addText("UPSIDE  —  20% EQUITY GAIN",         { x: 6.9,  y: 4.18, w: 5.4, h: 0.18, fontSize: 7.5, bold: true, color: C.teal, charSpace: 0.8, margin: 0 });
-          slide.addText(`+${fmtM(upside20)} estimated benefit`, { x: 6.9,  y: 4.42, w: 5.4, h: 0.26, fontFace: "Georgia", fontSize: 16, bold: true, color: C.teal, margin: 0 });
+          slide.addText(`+${fmtM(upside20)} estimated benefit`, { x: 6.9,  y: 4.42, w: 5.4, h: 0.26, fontFace: HEAD_FONT, fontSize: 16, bold: true, color: C.teal, margin: 0 });
           slide.addText([
             { text: `• ${selectedRP.equity}% equity participates in market upside`, options: { bullet: false } },
             { text: `\n• Fixed income (${selectedRP.fi}%) buffers volatility across cycles`, options: { bullet: false } },
