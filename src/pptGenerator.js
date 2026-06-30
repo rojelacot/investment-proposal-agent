@@ -592,21 +592,21 @@ export async function generatePowerPoint({
       // Dynamic goal bullets based on selected strategies
       const bOpts = { bullet: { type: "bullet" }, paraSpaceAfter: 6 };
       const overviewBullets = [];
-      overviewBullets.push({ text: `Align portfolio with risk profile, income needs, and long-term objectives`, options: bOpts });
+      overviewBullets.push({ text: `Align the portfolio with your risk profile, income, and long-term goals`, options: bOpts });
       if (data.stockPosition > 0 && data.ticker && data.ticker !== "Concentrated Stock") {
         overviewBullets.push({ text: `Reduce ${data.ticker} concentration (${pct(data.concentration)}) in a staged, tax-aware manner`, options: bOpts });
       }
       if (selectedStrategies?.crt) {
-        overviewBullets.push({ text: `CRT: ~${fmtK(data.crtIncome)}/yr income + estimated charitable deduction`, options: bOpts });
+        overviewBullets.push({ text: `Charitable remainder trust for lifetime income and a tax deduction`, options: bOpts });
       }
       if (selectedStrategies?.harvesting) {
-        overviewBullets.push({ text: `Tax-loss harvesting: ~${fmtM(data.annualHarvestLosses)} first-year losses to offset gains`, options: bOpts });
+        overviewBullets.push({ text: `Tax-loss harvesting to offset gains and reduce taxes`, options: bOpts });
       }
       if (selectedStrategies?.collar) {
-        overviewBullets.push({ text: `Option collar: protect ${fmtM(data.collarAllocation)} in ${data.ticker} with bounded downside`, options: bOpts });
+        overviewBullets.push({ text: `Option collar to protect ${data.ticker} with bounded downside`, options: bOpts });
       }
       if (selectedStrategies?.estatePlanning || modules?.estatePlanningReview) {
-        overviewBullets.push({ text: `Coordinate estate planning, trust structures, and legacy goals`, options: bOpts });
+        overviewBullets.push({ text: `Coordinate estate, trust, and legacy planning`, options: bOpts });
       }
       if (selectedStrategies?.muniBonds) {
         overviewBullets.push({ text: `Municipal bonds: tax-exempt income from diversification proceeds`, options: bOpts });
@@ -637,12 +637,12 @@ export async function generatePowerPoint({
         slide = pptx.addSlide();
         title(slide, "PLANNING", "Your Financial Picture", "");
         slide.addText(
-          "The full scope of planning we'll address together — well beyond the concentrated position.",
+          "The full scope of planning we'll coordinate across your financial picture.",
           { x: 0.85, y: 1.42, w: 11.6, h: 0.3, fontSize: 10.5, color: C.text, margin: 0 }
         );
         const fpAreas = [
-          ["Cash & Liquidity", ["Emergency reserve", "Discretionary income", "Lines of credit", "Near-term cash needs"], C.goldPale],
-          ["Investments & Tax", ["Diversification plan", "Tax-loss harvesting", "Asset location", "Withdrawal sequencing"], C.tealPale],
+          ["Cash & Liquidity", ["Emergency reserve", "Lines of credit", "Near-term cash needs"], C.goldPale],
+          ["Investments & Tax", ["Diversification plan", "Tax-loss harvesting", "Asset location"], C.tealPale],
           ["Real Estate", ["Rental income analysis", "1031 exchange review", "Cost segregation"], C.bluePale],
           ["Estate & Legacy", ["Estate documents & trusts", "Beneficiary review", "Charitable & legacy goals"], C.coralPale],
         ];
@@ -666,9 +666,9 @@ export async function generatePowerPoint({
         slide = pptx.addSlide();
         title(slide, "OUR APPROACH", "Financial Planning - AllWEALTH", "");
         const pillars = [
-          ["Access to Institutional Quality Investments", ["CIO-led, objective investment advice", "Strategic & tactical asset allocation", "Alternative investment strategies", "Active and passive strategies", "Institutional access at lower fees"]],
-          ["Life & Legacy Planning", ["Tax-optimized portfolio review", "Estate planning & wealth transfer", "Guidance through life transitions", "Education planning", "Protection & insurance needs"]],
-          ["Impact Initiatives", ["Values-based investing", "Charitable giving strategies", "Women's advisory resources", "Veteran & military family support", "Next-generation engagement"]],
+          ["Access to Institutional Quality Investments", ["CIO-led, objective advice", "Strategic & tactical allocation", "Institutional access at lower fees"]],
+          ["Life & Legacy Planning", ["Tax-optimized portfolio review", "Estate planning & wealth transfer", "Guidance through life transitions"]],
+          ["Impact Initiatives", ["Values-based investing", "Charitable giving strategies", "Next-generation engagement"]],
         ];
         const pcW = 3.67, pcGap = 0.30;
         pillars.forEach((p, i) => {
@@ -676,7 +676,7 @@ export async function generatePowerPoint({
           slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: 1.9, w: pcW, h: 0.8, rectRadius: 0.1, fill: { color: C.goldLight }, line: { color: C.goldLight } });
           slide.addText(p[0], { x: cx + 0.12, y: 1.9, w: pcW - 0.24, h: 0.8, fontSize: 15, bold: true, color: C.white, align: "center", valign: "middle", margin: 0, fit: "shrink" });
           const items = p[1].map(t => ({ text: t, options: { align: "center", paraSpaceAfter: 26, color: C.text, fontSize: 14.5, breakLine: true } }));
-          slide.addText(items, { x: cx + 0.12, y: 3.2, w: pcW - 0.24, h: 3.2, color: C.text, align: "center", valign: "top", margin: 0 });
+          slide.addText(items, { x: cx + 0.12, y: 3.2, w: pcW - 0.24, h: 3.2, color: C.text, align: "center", valign: "middle", margin: 0 });
         });
         footer(slide);
       }
@@ -785,9 +785,9 @@ export async function generatePowerPoint({
             `• ~${fmtM(data.immediateTax)} tax if sold outright today (${pct(data.taxRate)} combined)\n` +
             `• Goal: reduce concentration without a forced tax event`
           : `• Diversified — largest position ${cpHoldings ? pct(cpTopPct) : "under review"}\n` +
-            `• Tax efficiency: direct-indexing tax-loss harvesting can offset gains and lower your tax bill\n` +
-            `• Align the allocation to your goals and reduce fund fees\n` +
-            `• Ongoing advice: rebalancing, tax management, and regular review`,
+            `• Direct-indexing harvests losses to offset gains and lower taxes\n` +
+            `• Align allocation to your goals and reduce fund fees\n` +
+            `• Ongoing rebalancing, tax management, and review`,
         C.white
       );
 
