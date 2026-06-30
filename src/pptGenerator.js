@@ -2797,6 +2797,11 @@ export async function generatePowerPoint({
                 `Projected over ${horizon} years at a ${grossReturnPct}% assumed gross return on ${fmtM(pv)} of investable assets.`
               );
 
+              slide.addText(
+                "A small annual fee difference compounds: every dollar paid in fees is also a dollar that never compounds. The figures below show the cumulative impact of moving from the current weighted fee to the proposed model.",
+                { x: 0.85, y: 1.4, w: 11.4, h: 0.4, fontSize: 10.2, color: C.text, margin: 0 }
+              );
+
               statBox(slide, 0.85, 1.9, 2.05, "Current Weighted Fee", feeF(c.weightedFeePct), C.coralPale, C.coral);
               statBox(slide, 3.1,  1.9, 2.05, "Proposed Weighted Fee", feeF(t.weightedFeePct), C.tealPale, C.teal);
               statBox(slide, 5.35, 1.9, 2.05, "Annual Reduction", bps >= 0 ? `${bps} bps` : `+${-bps} bps`, C.white, C.navy);
