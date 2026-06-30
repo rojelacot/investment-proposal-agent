@@ -47,8 +47,8 @@ export default function App() {
     financialPicture: true, // planning-scope coverage slide
     capabilities: true, // firm capabilities / "how we help" slide
     taxOnTheTable: true, // hero value slide: tax saved + downside protected
-    recommendedInvestmentApproach: false, // opt-in: portfolio strategy + risk/allocation slides
-    riskManagementOverview: false,
+    recommendedInvestmentApproach: true, // portfolio strategy + risk/allocation slides (required for the fee-drag slide)
+    riskManagementOverview: true,
     goalsTimeline: false,
     liquidityNeedsReview: false,
     taxPlanningOverview: false,
@@ -60,7 +60,7 @@ export default function App() {
     implementationTimeline: false,
     nextSteps: true,
     // Analytics & projection slides — opt-in: only render when checked.
-    feeDragAnalysis: false,
+    feeDragAnalysis: true,
     monteCarloProjection: false,
     stressTestAnalysis: false,
   });

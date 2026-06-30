@@ -3167,10 +3167,10 @@ export async function generatePowerPoint({
           const riskNumColor   = riskNumber != null ? C.navy : C.muted;
           const riskNumFill    = riskNumber != null ? C.white : "F5F6F8";
 
-          statBox(slide, 0.85, 1.88, 2.6,  "Client Risk Number",  riskNumDisplay,      riskNumFill, riskNumColor);
-          statBox(slide, 3.35, 1.88, 2.6,  "Recommended Profile", selectedRP.label,    C.goldPale,  C.gold);
-          statBox(slide, 6.15, 1.88, 2.6,  "Equity / Fixed",      `${selectedRP.equity} / ${selectedRP.fi}`, C.bluePale, C.blue);
-          statBox(slide, 8.95, 1.88, 2.6,  "Concentration",       pct(currentConc),    currentConc > 50 ? C.coralPale : C.tealPale, currentConc > 50 ? C.coral : C.teal);
+          statBox(slide, 0.85, 1.88, 2.77, "Client Risk Number",  riskNumDisplay,      riskNumFill, riskNumColor);
+          statBox(slide, 3.80, 1.88, 2.77, "Recommended Profile", selectedRP.label,    C.goldPale,  C.gold);
+          statBox(slide, 6.75, 1.88, 2.77, "Equity / Fixed",      `${selectedRP.equity} / ${selectedRP.fi}`, C.bluePale, C.blue);
+          statBox(slide, 9.70, 1.88, 2.77, "Concentration",       pct(currentConc),    currentConc > 50 ? C.coralPale : C.tealPale, currentConc > 50 ? C.coral : C.teal);
 
           // Risk-number footnote (only when not on file)
           if (riskNumber == null) {
@@ -3206,12 +3206,12 @@ export async function generatePowerPoint({
           // Downside
           slide.addShape(pptx.ShapeType.roundRect, { x: 0.85, y: 4.08, w: 5.8, h: 1.72, rectRadius: 0.08, fill: { color: C.coralPale }, line: { color: C.coral, width: 0.7 } });
           slide.addShape(pptx.ShapeType.rect,      { x: 0.85, y: 4.08, w: 0.06, h: 1.72, fill: { color: C.coral }, line: { color: C.coral } });
-          slide.addText("DOWNSIDE  —  30% EQUITY DECLINE", { x: 0.75, y: 4.18, w: 5.4, h: 0.18, fontSize: 7.5, bold: true, color: C.coral, charSpace: 0.8, margin: 0 });
-          slide.addText(`~(${fmtM(downside30)}) estimated impact`, { x: 0.75, y: 4.42, w: 5.4, h: 0.26, fontFace: HEAD_FONT, fontSize: 16, bold: true, color: C.coral, margin: 0 });
+          slide.addText("DOWNSIDE  —  30% EQUITY DECLINE", { x: 1.05, y: 4.18, w: 5.4, h: 0.18, fontSize: 7.5, bold: true, color: C.coral, charSpace: 0.8, margin: 0 });
+          slide.addText(`~(${fmtM(downside30)}) estimated impact`, { x: 1.05, y: 4.42, w: 5.4, h: 0.26, fontFace: HEAD_FONT, fontSize: 16, bold: true, color: C.coral, margin: 0 });
           slide.addText([
             { text: `• ${selectedRP.equity}% equity × 30% decline on ${fmtM(cleanNumber(data.investableAssets))} investable assets`, options: { bullet: false } },
             { text: `\n• Concentrated position amplifies drawdown until diversification executes`, options: { bullet: false } },
-          ], { x: 0.75, y: 4.74, w: 5.4, h: 0.85, fontSize: 10, color: C.text, margin: 0, valign: "top" });
+          ], { x: 1.05, y: 4.74, w: 5.4, h: 0.85, fontSize: 10, color: C.text, margin: 0, valign: "top" });
 
           // Upside
           slide.addShape(pptx.ShapeType.roundRect, { x: 6.7,  y: 4.08, w: 5.8, h: 1.72, rectRadius: 0.08, fill: { color: C.tealPale }, line: { color: C.teal, width: 0.7 } });
