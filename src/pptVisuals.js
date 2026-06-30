@@ -168,15 +168,6 @@ function drawHeader(slide, pptx, P, kicker, heading, subtitle = "") {
   }
 }
 
-// A downward flow arrow centered at (cx) starting at (y).
-function drawDownArrow(slide, pptx, P, cx, y) {
-  slide.addShape(pptx.ShapeType.triangle, {
-    x: cx - 0.18, y, w: 0.36, h: 0.26,
-    rotate: 180,
-    fill: { color: P.gold }, line: { color: P.gold },
-  });
-}
-
 // A labeled value "card": large value, small label, optional left accent bar.
 function drawMetricCard(slide, pptx, P, opts) {
   const {

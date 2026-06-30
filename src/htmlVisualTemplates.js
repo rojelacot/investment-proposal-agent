@@ -174,10 +174,6 @@ export function buildEstateSlideHtml(input = {}) {
   const futureHeirs = Math.max(0, futureTotal - futureTax);
   const futureEffective = futureTotal > 0 ? futureTax / futureTotal : 0;
 
-  // growthMultiple is computed by caller; here futureTotal is already grown
-  const rawOriginal = toMillions(data._originalNetWorth || 0);
-  const growthMultiple = rawOriginal > 0 ? futureTotal / rawOriginal : 0;
-  const growthLabel = growthMultiple > 1 ? `${growthMultiple.toFixed(1)}× growth` : `${projectionYears}-yr projection`;
 
   return `<div style="width:1280px;height:720px;background:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#1A2030;box-sizing:border-box;overflow:hidden;position:relative;">
 

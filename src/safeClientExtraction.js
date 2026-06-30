@@ -76,7 +76,7 @@ function extractClientAge(notes) {
   const currentYear = new Date().getFullYear();
 
   const agePatterns = [
-    /\bage[d]?\s*[:\-]?\s*(\d{2})\b/i,
+    /\bage[d]?\s*[:-]?\s*(\d{2})\b/i,
     /(\d{2})\s+years?\s+old/i,
     /client\s+is\s+(\d{2})\s+years?/i,
     /(\d{2})\s*[-–]\s*year[-\s]old/i,
@@ -103,8 +103,8 @@ function extractTicker(notes) {
   const upper = notes.toUpperCase();
 
   const directPatterns = [
-    /\bticker\s*[:\-]?\s*([A-Z]{1,5})\b/i,
-    /\bsymbol\s*[:\-]?\s*([A-Z]{1,5})\b/i,
+    /\bticker\s*[:-]?\s*([A-Z]{1,5})\b/i,
+    /\bsymbol\s*[:-]?\s*([A-Z]{1,5})\b/i,
     /\b([A-Z]{2,5})\s+(?:position|stock|shares|holding|holdings)\b/i,
     /\b(?:position|stock|shares|holding|holdings)\s+(?:in|of)?\s*([A-Z]{2,5})\b/i,
     /\$[\d,.]+\s*(?:M|MM|million|B|billion|K|thousand)?\s+([A-Z]{2,5})\b/i,
