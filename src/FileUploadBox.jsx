@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
 import PdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
@@ -12,7 +12,9 @@ pdfjsLib.GlobalWorkerOptions.workerPort = new PdfjsWorker();
 export default function FileUploadBox({ onTextExtracted }) {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isReading, setIsReading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState("");
+  const dragCounter = useRef(0);
 
   async function readTextFile(file) {
     return await file.text();
@@ -81,41 +83,61 @@ export default function FileUploadBox({ onTextExtracted }) {
     throw new Error(`Unsupported file type: ${file.name}`);
   }
 
-  async function handleFileUpload(event) {
-    const files = Array.from(event.target.files || []);
+  async function processFiles(files) {
     if (files.length === 0) return;
-
     setIsReading(true);
     setError("");
-
     try {
       const extractedDocs = [];
-
       for (const file of files) {
         const text = await extractTextFromFile(file);
-        extractedDocs.push({
-          name: file.name,
-          text,
-        });
+        extractedDocs.push({ name: file.name, text });
       }
-
       const combinedText = extractedDocs
         .map((doc) => `Source File: ${doc.name}\n\n${doc.text}`)
         .join("\n\n==============================\n\n");
-
       onTextExtracted(combinedText);
-
-      setUploadedFiles((prev) => [
-        ...prev,
-        ...extractedDocs.map((doc) => doc.name),
-      ]);
+      setUploadedFiles((prev) => [...prev, ...extractedDocs.map((doc) => doc.name)]);
     } catch (err) {
       console.error(err);
       setError(err.message || "Could not read one of the uploaded files.");
     } finally {
       setIsReading(false);
-      event.target.value = "";
     }
+  }
+
+  async function handleFileUpload(event) {
+    const files = Array.from(event.target.files || []);
+    await processFiles(files);
+    event.target.value = "";
+  }
+
+  function handleDragEnter(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (dragCounter.current === 1) setIsDragging(true);
+  }
+
+  function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) setIsDragging(false);
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  async function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    await processFiles(files);
   }
 
   return (
@@ -126,7 +148,13 @@ export default function FileUploadBox({ onTextExtracted }) {
         The app will extract the text and add it to the client notes.
       </p>
 
-      <label className="file-upload-dropzone">
+      <label
+        className={`file-upload-dropzone${isDragging ? " file-upload-dropzone--dragging" : ""}`}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
         <input
           type="file"
           multiple

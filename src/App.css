@@ -416,6 +416,12 @@ button:disabled {
   background: #f3f6fb;
 }
 
+.file-upload-dropzone--dragging {
+  border-color: var(--navy);
+  background: #e8f0fb;
+  border-style: solid;
+}
+
 .file-upload-dropzone input {
   display: none;
 }
