@@ -611,33 +611,6 @@ export async function generatePowerPoint({
 
       // ── YOUR FINANCIAL PICTURE (planning scope — coverage, not numbers) ──────
       // Shows the breadth of planning we cover; deliberately avoids repeating the
-      // figures on Current Position / Overview.
-      if (modules.financialPicture !== false) {
-        slide = pptx.addSlide();
-        title(slide, "PLANNING", "Your Financial Picture", "");
-        slide.addText(
-          "The full scope of planning we'll coordinate across your financial picture.",
-          { x: 0.85, y: 1.42, w: 11.6, h: 0.3, fontSize: 10.5, color: C.text, margin: 0 }
-        );
-        const fpAreas = [
-          ["Cash & Liquidity", ["Emergency reserve", "Lines of credit", "Near-term cash needs"], C.goldPale],
-          ["Investments & Tax", ["Diversification plan", "Tax-loss harvesting", "Asset location"], C.tealPale],
-          ["Real Estate", ["Rental income analysis", "1031 exchange review", "Cost segregation"], C.bluePale],
-          ["Estate & Legacy", ["Estate documents & trusts", "Beneficiary review", "Charitable & legacy goals"], C.coralPale],
-        ];
-        const fpX = [0.85, 3.80, 6.75, 9.70];
-        const fpY = 2.25, fpH = 3.2, fpBh = 0.5, fpW = 2.77;
-        fpAreas.forEach((a, i) => {
-          const cx = fpX[i];
-          slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: fpY, w: fpW, h: fpH, rectRadius: 0.1, fill: { color: a[2] }, line: { color: C.border, width: 0.7 } });
-          slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: fpY, w: fpW, h: fpBh, rectRadius: 0.1, fill: { color: C.goldLight }, line: { color: C.goldLight } });
-          slide.addShape(pptx.ShapeType.rect, { x: cx, y: fpY + fpBh - 0.14, w: fpW, h: 0.14, fill: { color: C.goldLight }, line: { color: C.goldLight } });
-          slide.addText(a[0], { x: cx + 0.1, y: fpY, w: fpW - 0.2, h: fpBh, fontSize: 12.5, bold: true, color: C.white, align: "center", valign: "middle", margin: 0, fit: "shrink" });
-          const items = a[1].map(t => ({ text: t, options: { bullet: { type: "bullet" }, paraSpaceAfter: 22, color: C.text, fontSize: 14.5 } }));
-          slide.addText(items, { x: cx + 0.26, y: fpY + fpBh + 0.28, w: fpW - 0.46, h: fpH - fpBh - 0.5, color: C.text, valign: "top", margin: 0 });
-        });
-        footer(slide);
-      }
 
       // ── HOW WE HELP (firm capabilities — matches the example deck's services
       // slide: three pillars under orange banner headers). ────────────────────
