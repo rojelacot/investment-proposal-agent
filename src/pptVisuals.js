@@ -884,24 +884,24 @@ export function addRiskOverviewVisual(slide, pptx, data, C, helpers) {
 export function addNextStepsVisual(slide, pptx, data, C, helpers) {
   const { title, footer } = helpers;
   const d = data || {};
-  const ticker = d.ticker ? String(d.ticker).toUpperCase() : “”;
+  const ticker = d.ticker ? String(d.ticker).toUpperCase() : '';
 
   // Same title() function used across all slides
-  title(slide, “NEXT STEPS”, “Recommended Action Plan”, “”);
+  title(slide, "NEXT STEPS", "Recommended Action Plan", "");
 
   // Description text — same position/style as other slides
   slide.addText(
-    “Move from proposal review to implementation. Items marked “Review” need advisor confirmation.”,
+    'Move from proposal review to implementation. Items marked "Review" need advisor confirmation.',
     { x: 0.85, y: 1.42, w: 11.6, h: 0.3, fontSize: 10.5, color: C.text, margin: 0 }
   );
 
   // 5 steps — same card style as Proposal Conclusion bottom cards
   const steps = [
-    [“1”, “Confirm client facts”,         “Validate goals, time horizon, liquidity needs, and the extracted financial data.”,    C.bluePale,  C.blue],
-    [“2”, “Validate the risk profile”,    “Confirm the recommended risk posture and target allocation are suitable.”,            C.tealPale,  C.teal],
-    [“3”, “Address concentration”,        `Review strategies to reduce single-stock exposure${ticker ? ` in ${ticker}` : “”}.`, C.goldPale,  C.gold],
-    [“4”, “Review tax & estate exposure”, “Coordinate tax, trust, and estate items with the CPA and attorney.”,                 C.coralPale, C.coral],
-    [“5”, “Approve & implement”,          “Approve the final action plan and prepare client-ready documents.”,                   C.bluePale,  C.blue],
+    ["1", "Confirm client facts",         "Validate goals, time horizon, liquidity needs, and the extracted financial data.",    C.bluePale,  C.blue],
+    ["2", "Validate the risk profile",    "Confirm the recommended risk posture and target allocation are suitable.",            C.tealPale,  C.teal],
+    ["3", "Address concentration",        `Review strategies to reduce single-stock exposure${ticker ? ` in ${ticker}` : ""}.`, C.goldPale,  C.gold],
+    ["4", "Review tax & estate exposure", "Coordinate tax, trust, and estate items with the CPA and attorney.",                 C.coralPale, C.coral],
+    ["5", "Approve & implement",          "Approve the final action plan and prepare client-ready documents.",                   C.bluePale,  C.blue],
   ];
 
   const cardH = 1.45;
@@ -916,12 +916,12 @@ export function addNextStepsVisual(slide, pptx, data, C, helpers) {
     slide.addShape(pptx.ShapeType.ellipse, { x: x + 0.22, y: row1Y + 0.30, w: 0.42, h: 0.42, fill: { color: accentColor }, line: { color: accentColor } });
     slide.addText(num,       { x: x + 0.37, y: row1Y + 0.43, w: 0.10, h: 0.10, fontSize: 8,  bold: true, color: C.white,       margin: 0 });
     slide.addText(cardTitle, { x: x + 0.80, y: row1Y + 0.27, w: 2.40, h: 0.14, fontSize: 11, bold: true, color: accentColor,   margin: 0 });
-    slide.addText(desc,      { x: x + 0.80, y: row1Y + 0.61, w: 2.45, h: 0.50, fontSize: 10,             color: C.text,        margin: 0, fit: “shrink” });
+    slide.addText(desc,      { x: x + 0.80, y: row1Y + 0.61, w: 2.45, h: 0.50, fontSize: 10,             color: C.text,        margin: 0, fit: "shrink" });
   });
 
   // Row 2: 2 wider cards, spanning the same total width
   const row2CardW = 5.35;
-  const row2Gap   = 11.6 - 2 * row2CardW; // 0.90”
+  const row2Gap   = 11.6 - 2 * row2CardW; // 0.90"
   steps.slice(3).forEach(([num, cardTitle, desc, bgColor, accentColor], index) => {
     const x = 0.85 + index * (row2CardW + row2Gap);
     const w = row2CardW;
@@ -929,13 +929,13 @@ export function addNextStepsVisual(slide, pptx, data, C, helpers) {
     slide.addShape(pptx.ShapeType.ellipse, { x: x + 0.22, y: row2Y + 0.30, w: 0.42, h: 0.42, fill: { color: accentColor }, line: { color: accentColor } });
     slide.addText(num,       { x: x + 0.37, y: row2Y + 0.43, w: 0.10,    h: 0.10, fontSize: 8,  bold: true, color: C.white,     margin: 0 });
     slide.addText(cardTitle, { x: x + 0.80, y: row2Y + 0.27, w: w - 1.0, h: 0.14, fontSize: 11, bold: true, color: accentColor, margin: 0 });
-    slide.addText(desc,      { x: x + 0.80, y: row2Y + 0.61, w: w - 1.0, h: 0.50, fontSize: 10,             color: C.text,      margin: 0, fit: “shrink” });
+    slide.addText(desc,      { x: x + 0.80, y: row2Y + 0.61, w: w - 1.0, h: 0.50, fontSize: 10,             color: C.text,      margin: 0, fit: "shrink" });
   });
 
   // Disclaimer — same style as conclusion slide footer text
   slide.addText(
-    “Next step: move forward only after advisor, client, tax, legal, and implementation review.”,
-    { x: 0.85, y: 5.28, w: 11.6, h: 0.25, fontSize: 9, italic: true, bold: true, color: C.text, align: “center”, margin: 0 }
+    "Next step: move forward only after advisor, client, tax, legal, and implementation review.",
+    { x: 0.85, y: 5.28, w: 11.6, h: 0.25, fontSize: 9, italic: true, bold: true, color: C.text, align: "center", margin: 0 }
   );
 
   footer(slide);
