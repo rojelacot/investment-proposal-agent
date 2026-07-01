@@ -482,19 +482,11 @@ export async function generatePowerPoint({
       // Slide 1 Cover
       let slide = pptx.addSlide();
       slide.background = { color: C.navy };
-      slide.addShape(pptx.ShapeType.rect, {
-        x: 7.4,
-        y: 0,
-        w: 5.93,
-        h: 7.5,
-        fill: { color: C.navy2 },
-        line: { color: C.navy2 },
-      });
 
       slide.addText("CONFIDENTIAL · PREPARED EXCLUSIVELY FOR", {
         x: 0.75,
         y: 1.0,
-        w: 6.5,
+        w: 11.8,
         h: 0.24,
         fontSize: 8.5,
         color: C.goldLight,
@@ -505,7 +497,7 @@ export async function generatePowerPoint({
       slide.addText(name, {
         x: 0.75,
         y: 1.5,
-        w: 6.7,
+        w: 11.8,
         h: 0.9,
         fontFace: HEAD_FONT,
         fontSize: 34,
@@ -517,7 +509,7 @@ export async function generatePowerPoint({
       slide.addText("Wealth Strategy & Investment Proposal", {
         x: 0.75,
         y: 2.45,
-        w: 6.0,
+        w: 11.8,
         h: 0.3,
         fontSize: 14,
         color: "D1D7E2",
@@ -534,7 +526,7 @@ export async function generatePowerPoint({
 
       // Firm name and tagline (no client numbers on cover)
       slide.addText((firmName || "Meridian Wealth Partners").toUpperCase(), {
-        x: 0.75, y: 3.95, w: 6.4, h: 0.24,
+        x: 0.75, y: 3.95, w: 11.8, h: 0.24,
         fontSize: 11.5, color: C.goldLight, charSpace: 2.8, bold: true, margin: 0,
       });
       slide.addShape(pptx.ShapeType.line, {
@@ -546,23 +538,10 @@ export async function generatePowerPoint({
         ? `Prepared by ${advisorName}  ·  ${prepDate}  ·  Private & Confidential`
         : `Prepared ${prepDate}  ·  Private & Confidential`;
       slide.addText(preparedByLine, {
-        x: 0.75, y: 4.45, w: 6.4, h: 0.18,
+        x: 0.75, y: 4.45, w: 11.8, h: 0.18,
         fontSize: 8.5, color: "8A9AB5", margin: 0,
       });
 
-      // Right panel — firm brand block, vertically centered
-      slide.addText((firmName || "Meridian Wealth Partners").toUpperCase(), {
-        x: 8.1, y: 3.2, w: 4.5, h: 0.5,
-        fontFace: HEAD_FONT, fontSize: 16, bold: true, color: C.white, charSpace: 1, align: "center", margin: 0, fit: "shrink",
-      });
-      slide.addShape(pptx.ShapeType.line, {
-        x: 9.55, y: 3.86, w: 1.6, h: 0,
-        line: { color: C.goldLight, width: 1.1 },
-      });
-      slide.addText("Tailored Planning · Disciplined Execution · Lasting Impact", {
-        x: 8.1, y: 4.05, w: 4.5, h: 0.4,
-        fontSize: 8.2, color: "8A9AB5", align: "center", margin: 0,
-      });
 
 
       // Slide 2 Overview
@@ -673,10 +652,10 @@ export async function generatePowerPoint({
         const pcW = 3.67, pcGap = 0.30;
         pillars.forEach((p, i) => {
           const cx = 0.85 + i * (pcW + pcGap);
-          slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: 1.9, w: pcW, h: 0.8, rectRadius: 0.1, fill: { color: C.goldLight }, line: { color: C.goldLight } });
-          slide.addText(p[0], { x: cx + 0.12, y: 1.9, w: pcW - 0.24, h: 0.8, fontSize: 15, bold: true, color: C.white, align: "center", valign: "middle", margin: 0, fit: "shrink" });
-          const items = p[1].map(t => ({ text: t, options: { align: "center", paraSpaceAfter: 8, color: C.text, fontSize: 13, breakLine: true } }));
-          slide.addText(items, { x: cx + 0.12, y: 3.2, w: pcW - 0.24, h: 3.2, color: C.text, align: "center", valign: "middle", margin: 0 });
+          slide.addShape(pptx.ShapeType.roundRect, { x: cx, y: 1.7, w: pcW, h: 0.8, rectRadius: 0.1, fill: { color: C.goldLight }, line: { color: C.goldLight } });
+          slide.addText(p[0], { x: cx + 0.12, y: 1.7, w: pcW - 0.24, h: 0.8, fontSize: 15, bold: true, color: C.white, align: "center", valign: "middle", margin: 0, fit: "shrink" });
+          const items = p[1].map(t => ({ text: t, options: { align: "center", paraSpaceAfter: 20, color: C.text, fontSize: 13, breakLine: true } }));
+          slide.addText(items, { x: cx + 0.12, y: 2.7, w: pcW - 0.24, h: 3.8, color: C.text, align: "center", valign: "top", margin: 0 });
         });
         footer(slide);
       }
