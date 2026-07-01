@@ -3868,33 +3868,35 @@ export async function generatePowerPoint({
       ];
 
       finalSteps.forEach((item, i) => {
-        const y = 1.8 + i * 0.82;
+        const y = 2.15 + i * 0.92;
 
         slide.addShape(pptx.ShapeType.ellipse, {
           x: 0.85,
           y,
-          w: 0.42,
-          h: 0.42,
+          w: 0.44,
+          h: 0.44,
           fill: { color: C.navy },
           line: { color: C.navy },
         });
 
         slide.addText(item[0], {
-          x: 0.99,
-          y: y + 0.12,
-          w: 0.12,
-          h: 0.1,
-          fontSize: 8,
+          x: 0.85,
+          y,
+          w: 0.44,
+          h: 0.44,
+          fontSize: 11,
           bold: true,
           color: C.white,
+          align: "center",
+          valign: "middle",
           margin: 0,
         });
 
         slide.addText(item[1], {
-          x: 1.45,
-          y: y,
-          w: 3.2,
-          h: 0.18,
+          x: 1.48,
+          y: y + 0.02,
+          w: 9.57,
+          h: 0.20,
           fontSize: 11,
           bold: true,
           color: C.navy,
@@ -3902,19 +3904,19 @@ export async function generatePowerPoint({
         });
 
         slide.addText(item[2], {
-          x: 1.45,
-          y: y + 0.27,
-          w: 9.6,
-          h: 0.18,
-          fontSize: 8.8,
+          x: 1.48,
+          y: y + 0.26,
+          w: 9.57,
+          h: 0.20,
+          fontSize: 9,
           color: C.text,
           margin: 0,
         });
 
         slide.addShape(pptx.ShapeType.line, {
-          x: 1.45,
-          y: y + 0.6,
-          w: 10.25,
+          x: 1.48,
+          y: y + 0.70,
+          w: 10.22,
           h: 0,
           line: { color: C.border, width: 0.6 },
         });
