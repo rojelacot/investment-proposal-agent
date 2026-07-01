@@ -878,122 +878,67 @@ export function addRiskOverviewVisual(slide, pptx, data, C, helpers) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Next Steps — numbered action items, each with a dynamic data chip
+// 3. Next Steps — card-based layout matching Proposal Conclusion slide style
 // ---------------------------------------------------------------------------
 
 export function addNextStepsVisual(slide, pptx, data, C, helpers) {
-  const P = palette(C);
-  const { money, pct } = resolveFmt(helpers);
+  const { title, footer } = helpers;
   const d = data || {};
+  const ticker = d.ticker ? String(d.ticker).toUpperCase() : “”;
 
-  applyBackground(slide, P);
-  drawHeader(
-    slide, pptx, P,
-    "Next Steps",
-    "Recommended Action Plan",
-    "Move from proposal review to implementation. Items marked “Review” need confirmation."
+  // Same title() function used across all slides
+  title(slide, “NEXT STEPS”, “Recommended Action Plan”, “”);
+
+  // Description text — same position/style as other slides
+  slide.addText(
+    “Move from proposal review to implementation. Items marked “Review” need advisor confirmation.”,
+    { x: 0.85, y: 1.42, w: 11.6, h: 0.3, fontSize: 10.5, color: C.text, margin: 0 }
   );
 
-  // Dynamic values surfaced alongside each step (NaN/empty => "Review").
-  const ticker = d.ticker ? String(d.ticker).toUpperCase() : "";
-  const netWorth = (() => {
-    const nw = toMillions(d.netWorth);
-    return Number.isFinite(nw) ? nw : NaN;
-  })();
-  const riskLabel = d.riskLabel || d.riskProfile || "";
-  const riskName = riskLabel ? String(riskLabel).split("—")[0].trim() : "";
-  const concentration = asPercent(d.concentration);
-  const position = toMillions(d.stockPosition);
-  const rate = asRate(d.totalTaxRate ?? d.taxRate);
-
-  // [title, description, chipLabel, chipValue]
+  // 5 steps — same card style as Proposal Conclusion bottom cards
   const steps = [
-    [
-      "Confirm client facts",
-      "Validate goals, time horizon, liquidity needs, and the extracted financial data.",
-      "Net Worth",
-      money(netWorth),
-    ],
-    [
-      "Validate the risk profile",
-      "Confirm the recommended risk posture and target allocation are suitable.",
-      "Risk Profile",
-      riskName || MISSING,
-    ],
-    [
-      "Address concentration",
-      `Review strategies to reduce single-stock exposure${ticker ? ` in ${ticker}` : ""}.`,
-      "Concentration",
-      Number.isFinite(concentration) ? pct(concentration) : MISSING,
-    ],
-    [
-      "Review tax & estate exposure",
-      "Coordinate tax, trust, and estate items with the CPA and attorney.",
-      ticker ? `${ticker} Position` : "Position",
-      money(position),
-    ],
-    [
-      "Approve & implement",
-      "Approve the final action plan and prepare client-ready documents.",
-      "Tax Rate",
-      Number.isFinite(rate) ? pct(rate * 100) : MISSING,
-    ],
+    [“1”, “Confirm client facts”,         “Validate goals, time horizon, liquidity needs, and the extracted financial data.”,    C.bluePale,  C.blue],
+    [“2”, “Validate the risk profile”,    “Confirm the recommended risk posture and target allocation are suitable.”,            C.tealPale,  C.teal],
+    [“3”, “Address concentration”,        `Review strategies to reduce single-stock exposure${ticker ? ` in ${ticker}` : “”}.`, C.goldPale,  C.gold],
+    [“4”, “Review tax & estate exposure”, “Coordinate tax, trust, and estate items with the CPA and attorney.”,                 C.coralPale, C.coral],
+    [“5”, “Approve & implement”,          “Approve the final action plan and prepare client-ready documents.”,                   C.bluePale,  C.blue],
   ];
 
-  const startY = 1.95;
-  const rowH = 0.9;
-  const chipW = 2.6;
-  const chipX = SLIDE_W - MARGIN - chipW;
+  const cardH = 1.45;
+  const row1Y = 1.95;
+  const row2Y = 3.60;
 
-  steps.forEach((step, i) => {
-    const [titleText, desc, chipLabel, chipValue] = step;
-    const y = startY + i * rowH;
-
-    // Numbered circle
-    slide.addShape(pptx.ShapeType.ellipse, {
-      x: MARGIN, y: y + 0.05, w: 0.5, h: 0.5,
-      fill: { color: P.navy }, line: { color: P.navy },
-    });
-    slide.addText(String(i + 1), {
-      x: MARGIN, y: y + 0.05, w: 0.5, h: 0.5,
-      fontSize: 16, bold: true, color: P.white, align: "center", valign: "middle", margin: 0,
-    });
-
-    // Step title + description
-    const textX = MARGIN + 0.75;
-    slide.addText(titleText, {
-      x: textX, y: y, w: chipX - textX - 0.3, h: 0.3,
-      fontSize: 15, bold: true, color: P.navy, margin: 0, fit: "shrink",
-    });
-    slide.addText(desc, {
-      x: textX, y: y + 0.33, w: chipX - textX - 0.3, h: 0.3,
-      fontSize: 10.5, color: P.text, margin: 0, fit: "shrink",
-    });
-
-    // Dynamic data chip (right aligned)
-    const isReview = chipValue === undefined || chipValue === null || chipValue === "" || chipValue === MISSING;
-    slide.addShape(pptx.ShapeType.roundRect, {
-      x: chipX, y: y + 0.02, w: chipW, h: rowH - 0.22, rectRadius: 0.06,
-      fill: { color: isReview ? P.bg : P.goldPale },
-      line: { color: P.border, width: 0.75 },
-    });
-    slide.addText(String(chipLabel).toUpperCase(), {
-      x: chipX + 0.18, y: y + 0.1, w: chipW - 0.36, h: 0.18,
-      fontSize: 8, bold: true, color: P.muted, charSpace: 1, margin: 0,
-    });
-    slide.addText(isReview ? MISSING : String(chipValue), {
-      x: chipX + 0.18, y: y + 0.3, w: chipW - 0.36, h: 0.32,
-      fontSize: 18, bold: true, color: isReview ? P.muted : P.gold, margin: 0, fit: "shrink",
-    });
-
-    // Divider line under the row (skip after the last row)
-    if (i < steps.length - 1) {
-      slide.addShape(pptx.ShapeType.line, {
-        x: textX, y: y + rowH - 0.12, w: chipX - textX - 0.3, h: 0,
-        line: { color: P.border, width: 0.6 },
-      });
-    }
+  // Row 1: 3 cards — identical geometry to conclusion slide cards
+  steps.slice(0, 3).forEach(([num, cardTitle, desc, bgColor, accentColor], index) => {
+    const x = 0.85 + index * 3.95;
+    const w = 3.55;
+    slide.addShape(pptx.ShapeType.roundRect, { x, y: row1Y, w, h: cardH, rectRadius: 0.06, fill: { color: bgColor }, line: { color: accentColor, width: 0.75 } });
+    slide.addShape(pptx.ShapeType.ellipse, { x: x + 0.22, y: row1Y + 0.30, w: 0.42, h: 0.42, fill: { color: accentColor }, line: { color: accentColor } });
+    slide.addText(num,       { x: x + 0.37, y: row1Y + 0.43, w: 0.10, h: 0.10, fontSize: 8,  bold: true, color: C.white,       margin: 0 });
+    slide.addText(cardTitle, { x: x + 0.80, y: row1Y + 0.27, w: 2.40, h: 0.14, fontSize: 11, bold: true, color: accentColor,   margin: 0 });
+    slide.addText(desc,      { x: x + 0.80, y: row1Y + 0.61, w: 2.45, h: 0.50, fontSize: 10,             color: C.text,        margin: 0, fit: “shrink” });
   });
+
+  // Row 2: 2 wider cards, spanning the same total width
+  const row2CardW = 5.35;
+  const row2Gap   = 11.6 - 2 * row2CardW; // 0.90”
+  steps.slice(3).forEach(([num, cardTitle, desc, bgColor, accentColor], index) => {
+    const x = 0.85 + index * (row2CardW + row2Gap);
+    const w = row2CardW;
+    slide.addShape(pptx.ShapeType.roundRect, { x, y: row2Y, w, h: cardH, rectRadius: 0.06, fill: { color: bgColor }, line: { color: accentColor, width: 0.75 } });
+    slide.addShape(pptx.ShapeType.ellipse, { x: x + 0.22, y: row2Y + 0.30, w: 0.42, h: 0.42, fill: { color: accentColor }, line: { color: accentColor } });
+    slide.addText(num,       { x: x + 0.37, y: row2Y + 0.43, w: 0.10,    h: 0.10, fontSize: 8,  bold: true, color: C.white,     margin: 0 });
+    slide.addText(cardTitle, { x: x + 0.80, y: row2Y + 0.27, w: w - 1.0, h: 0.14, fontSize: 11, bold: true, color: accentColor, margin: 0 });
+    slide.addText(desc,      { x: x + 0.80, y: row2Y + 0.61, w: w - 1.0, h: 0.50, fontSize: 10,             color: C.text,      margin: 0, fit: “shrink” });
+  });
+
+  // Disclaimer — same style as conclusion slide footer text
+  slide.addText(
+    “Next step: move forward only after advisor, client, tax, legal, and implementation review.”,
+    { x: 0.85, y: 5.28, w: 11.6, h: 0.25, fontSize: 9, italic: true, bold: true, color: C.text, align: “center”, margin: 0 }
+  );
+
+  footer(slide);
 }
 
 export default {
